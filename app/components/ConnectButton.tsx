@@ -9,7 +9,7 @@ function short(addr: string) {
 export function ConnectButton({ wallet }: { wallet: WalletState }) {
   if (wallet.address) {
     return (
-      <div className="flex items-center gap-2 rounded-full border border-black/10 bg-black/[.03] px-4 py-1.5 text-sm font-mono dark:border-white/10 dark:bg-white/[.05]">
+      <div className="flex items-center gap-2 rounded-full border border-black/10 bg-black/[.03] px-4 py-1.5 text-sm font-mono">
         <span className="h-2 w-2 rounded-full bg-emerald-500" />
         {short(wallet.address)}
       </div>
@@ -21,7 +21,7 @@ export function ConnectButton({ wallet }: { wallet: WalletState }) {
       <button
         onClick={wallet.connect}
         disabled={wallet.connecting}
-        className="rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
+        className="rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50"
       >
         {wallet.connecting ? "Connecting…" : "Connect wallet"}
       </button>

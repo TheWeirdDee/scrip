@@ -36,40 +36,40 @@ export function DecryptField({
           : value.toString();
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-black/10 bg-black/[.02] px-4 py-3 dark:border-white/10 dark:bg-white/[.03]">
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-black/10 bg-black/[.02] px-4 py-3">
       <div className="min-w-0 flex-1">
-        <div className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+        <div className="text-xs uppercase tracking-wide text-zinc-500">
           {label}
         </div>
-        <div className="truncate font-mono text-xs text-zinc-500 dark:text-zinc-500">{handle}</div>
+        <div className="truncate font-mono text-xs text-zinc-500">{handle}</div>
       </div>
 
       {status === "idle" && (
         <button
           onClick={() => handleClient && run(handleClient, handle)}
           disabled={!handleClient}
-          className="shrink-0 rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-40 dark:hover:bg-[#ccc]"
+          className="shrink-0 rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-40"
         >
           Decrypt
         </button>
       )}
 
       {status === "computing" && (
-        <div className="flex shrink-0 items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+        <div className="flex shrink-0 items-center gap-2 text-sm text-amber-600">
           <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
           computing in the TEE… (attempt {attempt}/12)
         </div>
       )}
 
       {status === "done" && (
-        <div className="shrink-0 font-mono text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+        <div className="shrink-0 font-mono text-sm font-semibold text-emerald-600">
           {formatted}
         </div>
       )}
 
       {status === "denied" && (
         <div
-          className="shrink-0 text-sm text-zinc-500 dark:text-zinc-400"
+          className="shrink-0 text-sm text-zinc-500"
           title={message ?? undefined}
         >
           sealed — access denied
@@ -77,7 +77,7 @@ export function DecryptField({
       )}
 
       {status === "error" && (
-        <div className="shrink-0 text-sm text-red-600 dark:text-red-400" title={message ?? undefined}>
+        <div className="shrink-0 text-sm text-red-600" title={message ?? undefined}>
           error decrypting
         </div>
       )}
