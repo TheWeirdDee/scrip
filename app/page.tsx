@@ -1,65 +1,108 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import { useWallet } from "@/app/lib/useWallet";
+import { ConnectButton } from "@/app/components/ConnectButton";
+import { FounderPanel } from "@/app/components/FounderPanel";
+import { OwnerPanel } from "@/app/components/OwnerPanel";
+import { AuditorPanel } from "@/app/components/AuditorPanel";
+import {
+  SCRIP_DISTRIBUTOR_ADDRESS,
+  CONFIDENTIAL_USDC_ADDRESS,
+  SPLIT_ADDRESS,
+  USDC_ADDRESS,
+} from "@/app/lib/contracts";
+
+type Tab = "founder" | "owner" | "auditor";
+
+const TABS: { id: Tab; label: string; blurb: string }[] = [
+  { id: "founder", label: "Founder", blurb: "Set up the sealed cap table, pool & distribute revenue, grant audits." },
+  { id: "owner", label: "Owner", blurb: "Decrypt only your own confidential balance." },
+  { id: "auditor", label: "Auditor", blurb: "If granted, decrypt the whole sealed cap table." },
+];
+
+function EtherscanLink({ label, address }: { label: string; address: string }) {
+  return (
+    <a
+      href={`https://sepolia.etherscan.io/address/${address}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex justify-between gap-3 font-mono text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+    >
+      <span className="shrink-0 font-sans text-zinc-400 dark:text-zinc-500">{label}</span>
+      <span className="truncate">{address}</span>
+    </a>
+  );
+}
 
 export default function Home() {
+  const wallet = useWallet();
+  const [tab, setTab] = useState<Tab>("owner");
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-black">
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-6 py-12 sm:px-8">
+        <header className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Scrip</h1>
+            <p className="mt-1 max-w-md text-sm text-zinc-500">
+              A cap table that pays out — with the ownership sealed. Wraps{" "}
+              <a
+                href="https://splits.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2"
+              >
+                0xSplits
+              </a>{" "}
+              (unmodified); Nox seals percentages &amp; payouts.
+            </p>
+          </div>
+          <ConnectButton wallet={wallet} />
+        </header>
+
+        <div className="rounded-lg border border-black/10 bg-white px-4 py-3 text-sm dark:border-white/10 dark:bg-white/[.03]">
+          <span className="font-semibold">Privacy boundary:</span>{" "}
+          <span className="text-zinc-600 dark:text-zinc-400">
+            sealed = each owner&apos;s percentage, each payout, the allocation math. Public = that a
+            split exists, owner addresses, and the total revenue distributed (provable — 0xSplits&apos;
+            balance is public). Nobody&apos;s identity is hidden; the amounts are.
+          </span>
+        </div>
+
+        <nav className="flex gap-1 border-b border-black/10 dark:border-white/10">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+                tab === t.id
+                  ? "border-foreground text-foreground"
+                  : "border-transparent text-zinc-500 hover:text-foreground"
+              }`}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+              {t.label}
+            </button>
+          ))}
+        </nav>
+        <p className="-mt-6 text-xs text-zinc-500">{TABS.find((t) => t.id === tab)?.blurb}</p>
+
+        <main className="flex-1">
+          {tab === "founder" && <FounderPanel wallet={wallet} />}
+          {tab === "owner" && <OwnerPanel wallet={wallet} />}
+          {tab === "auditor" && <AuditorPanel wallet={wallet} />}
+        </main>
+
+        <footer className="mt-auto flex flex-col gap-1.5 border-t border-black/10 pt-6 dark:border-white/10">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Deployed on Ethereum Sepolia
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+          <EtherscanLink label="ScripDistributor" address={SCRIP_DISTRIBUTOR_ADDRESS} />
+          <EtherscanLink label="ConfidentialUSDC" address={CONFIDENTIAL_USDC_ADDRESS} />
+          <EtherscanLink label="0xSplits Split" address={SPLIT_ADDRESS} />
+          <EtherscanLink label="USDC" address={USDC_ADDRESS} />
+        </footer>
+      </div>
     </div>
   );
 }

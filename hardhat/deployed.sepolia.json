@@ -1,0 +1,12 @@
+{
+  "ConfidentialPiggyBank": "0x585410f18f11fddbf8603fc4a972df087a48ca99",
+  "USDC": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+  "ConfidentialUSDC": "0x081000dc72d13e472671f9a641c261cbb1a39101",
+  "ScripDistributor": "0x3b323cee5cc1dc3fead35c74b45062aa43f45ede",
+  "Split": "0x7eD52bCCa0C0d6f7F86c73CB5A4106e33764557f",
+  "capTableId": "1",
+  "owners": [
+    "0x5bd8e236b39C4Fb48F4eA534584f2858c2B923E3",
+    "0x5a6121DEB74bb5cb977990e180a2337F7cadd639"
+  ]
+}
