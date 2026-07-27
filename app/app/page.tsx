@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@/app/lib/useWallet";
@@ -7,100 +6,21 @@ import { ConnectButton } from "@/app/components/ConnectButton";
 import { FounderPanel } from "@/app/components/FounderPanel";
 import { OwnerPanel } from "@/app/components/OwnerPanel";
 import { AuditorPanel } from "@/app/components/AuditorPanel";
-import {
-  SCRIP_DISTRIBUTOR_ADDRESS,
-  CONFIDENTIAL_USDC_ADDRESS,
-  SPLIT_ADDRESS,
-  USDC_ADDRESS,
-} from "@/app/lib/contracts";
-
+import { Logo } from "@/app/components/Logo";
+import { SCRIP_DISTRIBUTOR_ADDRESS, CONFIDENTIAL_USDC_ADDRESS, SPLIT_ADDRESS, USDC_ADDRESS } from "@/app/lib/contracts";
 type Tab = "founder" | "owner" | "auditor";
-
 const TABS: { id: Tab; label: string; blurb: string }[] = [
-  { id: "founder", label: "Founder", blurb: "Set up the sealed cap table, pool & distribute revenue, grant audits." },
-  { id: "owner", label: "Owner", blurb: "Decrypt only your own confidential balance." },
-  { id: "auditor", label: "Auditor", blurb: "If granted, decrypt the whole sealed cap table." },
+  { id:"owner", label:"Owner", blurb:"View and decrypt the confidential balance assigned to your wallet." },
+  { id:"founder", label:"Founder", blurb:"Manage ownership, route revenue, and authorize scoped audits." },
+  { id:"auditor", label:"Auditor", blurb:"Review a cap table when the founder has granted access." },
 ];
-
-function EtherscanLink({ label, address }: { label: string; address: string }) {
-  return (
-    <a
-      href={`https://sepolia.etherscan.io/address/${address}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex justify-between gap-3 font-mono text-xs text-zinc-500 hover:text-zinc-100"
-    >
-      <span className="shrink-0 font-sans text-zinc-400">{label}</span>
-      <span className="truncate">{address}</span>
-    </a>
-  );
-}
-
-export default function AppPage() {
-  const wallet = useWallet();
-  const [tab, setTab] = useState<Tab>("owner");
-
-  return (
-    <div className="flex flex-1 flex-col bg-background">
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-6 py-12 sm:px-8">
-        <header className="flex items-start justify-between gap-4">
-          <div>
-            <Link
-              href="/"
-              className="mb-1 inline-block text-xs font-medium text-zinc-500 hover:text-zinc-100"
-            >
-              ← Scrip
-            </Link>
-            <h1 className="text-2xl font-semibold tracking-tight">The app</h1>
-            <p className="mt-1 max-w-md text-sm text-zinc-500">
-              Connect a Sepolia wallet as a founder, an owner, or a granted auditor.
-            </p>
-          </div>
-          <ConnectButton wallet={wallet} />
-        </header>
-
-        <div className="rounded-lg border border-white/10 bg-white/[.03] px-4 py-3 text-sm">
-          <span className="font-semibold text-zinc-100">Privacy boundary:</span>{" "}
-          <span className="text-zinc-400">
-            sealed = each owner&apos;s percentage, each payout, the allocation math. Public = that a
-            split exists, owner addresses, and the total revenue distributed (provable — 0xSplits&apos;
-            balance is public). Nobody&apos;s identity is hidden; the amounts are.
-          </span>
-        </div>
-
-        <nav className="flex gap-1 border-b border-white/10">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
-                tab === t.id
-                  ? "border-foreground text-foreground"
-                  : "border-transparent text-zinc-500 hover:text-foreground"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </nav>
-        <p className="-mt-6 text-xs text-zinc-500">{TABS.find((t) => t.id === tab)?.blurb}</p>
-
-        <main className="flex-1">
-          {tab === "founder" && <FounderPanel wallet={wallet} />}
-          {tab === "owner" && <OwnerPanel wallet={wallet} />}
-          {tab === "auditor" && <AuditorPanel wallet={wallet} />}
-        </main>
-
-        <footer className="mt-auto flex flex-col gap-1.5 border-t border-white/10 pt-6">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            Deployed on Ethereum Sepolia
-          </p>
-          <EtherscanLink label="ScripDistributor" address={SCRIP_DISTRIBUTOR_ADDRESS} />
-          <EtherscanLink label="ConfidentialUSDC" address={CONFIDENTIAL_USDC_ADDRESS} />
-          <EtherscanLink label="0xSplits Split" address={SPLIT_ADDRESS} />
-          <EtherscanLink label="USDC" address={USDC_ADDRESS} />
-        </footer>
-      </div>
-    </div>
-  );
+const contracts = [["Scrip distributor",SCRIP_DISTRIBUTOR_ADDRESS],["Confidential USDC",CONFIDENTIAL_USDC_ADDRESS],["0xSplits rail",SPLIT_ADDRESS],["USDC",USDC_ADDRESS]] as const;
+export default function AppPage(){
+ const wallet=useWallet(); const [tab,setTab]=useState<Tab>("owner"); const active=TABS.find(t=>t.id===tab)!;
+ return <div className="product-app"><header className="app-header"><Link href="/"><Logo/></Link><ConnectButton wallet={wallet}/></header><main className="app-workspace">
+  <div className="app-intro"><div><div className="section-kicker"><span>Workspace</span> Sepolia network</div><h1>Ownership console</h1><p>Manage confidential allocations and distributions from one secure workspace.</p></div><Link href="/" className="text-link">← Back to Scrip</Link></div>
+  <div className="privacy-note"><strong>Privacy at a glance:</strong> wallet addresses and distribution totals are visible on-chain. Ownership percentages, individual payouts, and allocation computation remain sealed.</div>
+  <section className="app-card"><nav className="app-tabs" aria-label="Workspace roles">{TABS.map(t=><button key={t.id} onClick={()=>setTab(t.id)} className={`app-tab ${tab===t.id?"active":""}`}>{t.label}</button>)}</nav><p className="mb-8 text-sm text-zinc-500">{active.blurb}</p>{tab==="founder"&&<FounderPanel wallet={wallet}/>} {tab==="owner"&&<OwnerPanel wallet={wallet}/>} {tab==="auditor"&&<AuditorPanel wallet={wallet}/>}</section>
+  <footer className="app-contracts"><div className="section-kicker mb-3"><span>Network</span> Contract registry</div>{contracts.map(([name,address])=><a key={name} href={`https://sepolia.etherscan.io/address/${address}`} target="_blank" rel="noreferrer"><span>{name}</span><code>{address.slice(0,8)}…{address.slice(-6)} ↗</code></a>)}</footer>
+ </main></div>;
 }

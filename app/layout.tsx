@@ -13,9 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Scrip — a cap table that pays out, sealed",
-  description:
-    "Scrip wraps 0xSplits (unmodified) so ownership percentages and payouts are confidential, computed in a Nox TEE, while the total distributed stays publicly provable.",
+  title: "Scrip — Private ownership, provable outcomes",
+  description: "Confidential cap tables and private revenue distribution, with publicly provable totals.",
 };
 
 export default function RootLayout({
@@ -32,3 +31,4 @@ export default function RootLayout({
     </html>
   );
 }
+
