@@ -37,7 +37,7 @@ export function OwnerPanel({ wallet }: { wallet: WalletState }) {
         authorize this decryption; nobody else, including the founder, can see this number for your
         address.
       </p>
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-sm text-red-400">{error}</p>}
       {balanceHandle ? (
         <DecryptField
           label="Your confidential cUSDC balance"

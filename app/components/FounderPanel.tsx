@@ -193,7 +193,7 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
         <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500">
           Existing cap tables
         </h3>
-        {loadError && <p className="text-sm text-red-500">{loadError}</p>}
+        {loadError && <p className="text-sm text-red-400">{loadError}</p>}
         {capTableCount === null ? (
           <p className="text-sm text-zinc-500">Loading…</p>
         ) : capTableCount === 0n ? (
@@ -203,7 +203,7 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
             {Object.entries(tables).map(([id, owners]) => (
               <div
                 key={id}
-                className="rounded-lg border border-black/10 px-4 py-3 text-sm"
+                className="rounded-lg border border-white/10 px-4 py-3 text-sm"
               >
                 <div className="font-medium">Cap table #{id}</div>
                 <ul className="mt-1 flex flex-col gap-1 text-zinc-500">
@@ -232,14 +232,14 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
           <button
             onClick={pool}
             disabled={poolTx.state === "pending"}
-            className="rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background hover:bg-[#383838] disabled:opacity-50"
+            className="rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background hover:bg-zinc-200 disabled:opacity-50"
           >
             {poolTx.state === "pending" ? "Pooling…" : "Pool revenue"}
           </button>
           <button
             onClick={distribute}
             disabled={distributeTx.state === "pending" || !poolAmount}
-            className="rounded-full border border-black/20 px-4 py-1.5 text-sm font-medium hover:bg-black/[.04] disabled:opacity-50"
+            className="rounded-full border border-white/15 px-4 py-1.5 text-sm font-medium hover:bg-white/[.06] disabled:opacity-50"
           >
             {distributeTx.state === "pending"
               ? "Computing sealed payouts in the TEE…"
@@ -247,12 +247,12 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
           </button>
         </div>
         {distributeTx.state === "done" && (
-          <p className="mt-2 text-sm text-emerald-600">
+          <p className="mt-2 text-sm text-emerald-400">
             Distributed. Each owner can now decrypt their own payout in the Owner tab.
           </p>
         )}
         {(poolTx.state === "error" || distributeTx.state === "error") && (
-          <p className="mt-2 text-sm text-red-500">{poolTx.message ?? distributeTx.message}</p>
+          <p className="mt-2 text-sm text-red-400">{poolTx.message ?? distributeTx.message}</p>
         )}
       </section>
 
@@ -265,26 +265,26 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
             value={auditorTableId}
             onChange={(e) => setAuditorTableId(e.target.value)}
             placeholder="cap table id"
-            className="w-28 rounded-md border border-black/15 bg-transparent px-3 py-1.5 text-sm"
+            className="w-28 rounded-md border border-white/15 bg-transparent px-3 py-1.5 text-sm"
           />
           <input
             value={auditorAddr}
             onChange={(e) => setAuditorAddr(e.target.value)}
             placeholder="auditor address (0x…)"
-            className="min-w-0 flex-1 rounded-md border border-black/15 bg-transparent px-3 py-1.5 font-mono text-sm"
+            className="min-w-0 flex-1 rounded-md border border-white/15 bg-transparent px-3 py-1.5 font-mono text-sm"
           />
           <button
             onClick={grantAuditor}
             disabled={grantTx.state === "pending"}
-            className="rounded-full border border-black/20 px-4 py-1.5 text-sm font-medium hover:bg-black/[.04] disabled:opacity-50"
+            className="rounded-full border border-white/15 px-4 py-1.5 text-sm font-medium hover:bg-white/[.06] disabled:opacity-50"
           >
             {grantTx.state === "pending" ? "Granting…" : "Grant"}
           </button>
         </div>
         {grantTx.state === "done" && (
-          <p className="mt-2 text-sm text-emerald-600">Auditor granted.</p>
+          <p className="mt-2 text-sm text-emerald-400">Auditor granted.</p>
         )}
-        {grantTx.state === "error" && <p className="mt-2 text-sm text-red-500">{grantTx.message}</p>}
+        {grantTx.state === "error" && <p className="mt-2 text-sm text-red-400">{grantTx.message}</p>}
       </section>
 
       <section>
@@ -306,7 +306,7 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
                   setRows(next);
                 }}
                 placeholder="owner address (0x…)"
-                className="min-w-0 flex-1 rounded-md border border-black/15 bg-transparent px-3 py-1.5 font-mono text-sm"
+                className="min-w-0 flex-1 rounded-md border border-white/15 bg-transparent px-3 py-1.5 font-mono text-sm"
               />
               <input
                 value={row.pct}
@@ -316,7 +316,7 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
                   setRows(next);
                 }}
                 placeholder="bps (6000 = 60%)"
-                className="w-40 rounded-md border border-black/15 bg-transparent px-3 py-1.5 text-sm"
+                className="w-40 rounded-md border border-white/15 bg-transparent px-3 py-1.5 text-sm"
               />
             </div>
           ))}
@@ -324,23 +324,23 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <button
             onClick={() => setRows([...rows, { owner: "", pct: "" }])}
-            className="rounded-full border border-black/20 px-3 py-1 text-xs font-medium hover:bg-black/[.04]"
+            className="rounded-full border border-white/15 px-3 py-1 text-xs font-medium hover:bg-white/[.06]"
           >
             + add owner
           </button>
           <button
             onClick={createCapTable}
             disabled={createTx.state === "pending"}
-            className="rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background hover:bg-[#383838] disabled:opacity-50"
+            className="rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background hover:bg-zinc-200 disabled:opacity-50"
           >
             {createTx.state === "pending" ? createTx.step ?? "Working…" : "Create & lock"}
           </button>
         </div>
         {createTx.state === "done" && (
-          <p className="mt-2 text-sm text-emerald-600">{createTx.step}</p>
+          <p className="mt-2 text-sm text-emerald-400">{createTx.step}</p>
         )}
         {createTx.state === "error" && (
-          <p className="mt-2 text-sm text-red-500">{createTx.message}</p>
+          <p className="mt-2 text-sm text-red-400">{createTx.message}</p>
         )}
       </section>
     </div>

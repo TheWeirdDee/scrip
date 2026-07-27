@@ -65,17 +65,17 @@ export function AuditorPanel({ wallet }: { wallet: WalletState }) {
           value={tableId}
           onChange={(e) => setTableId(e.target.value)}
           placeholder="cap table id"
-          className="w-32 rounded-md border border-black/15 bg-transparent px-3 py-1.5 text-sm"
+          className="w-32 rounded-md border border-white/15 bg-transparent px-3 py-1.5 text-sm"
         />
         <button
           onClick={load}
           disabled={loading}
-          className="rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background hover:bg-[#383838] disabled:opacity-50"
+          className="rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background hover:bg-zinc-200 disabled:opacity-50"
         >
           {loading ? "Loading…" : "Load sealed cap table"}
         </button>
       </div>
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-sm text-red-400">{error}</p>}
       {rows && (
         <div className="flex flex-col gap-2">
           {rows.map((row) => (

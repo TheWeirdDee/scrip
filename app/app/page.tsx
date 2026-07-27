@@ -28,7 +28,7 @@ function EtherscanLink({ label, address }: { label: string; address: string }) {
       href={`https://sepolia.etherscan.io/address/${address}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex justify-between gap-3 font-mono text-xs text-zinc-500 hover:text-zinc-800"
+      className="flex justify-between gap-3 font-mono text-xs text-zinc-500 hover:text-zinc-100"
     >
       <span className="shrink-0 font-sans text-zinc-400">{label}</span>
       <span className="truncate">{address}</span>
@@ -41,13 +41,13 @@ export default function AppPage() {
   const [tab, setTab] = useState<Tab>("owner");
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-50">
+    <div className="flex flex-1 flex-col bg-background">
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-6 py-12 sm:px-8">
         <header className="flex items-start justify-between gap-4">
           <div>
             <Link
               href="/"
-              className="mb-1 inline-block text-xs font-medium text-zinc-500 hover:text-zinc-800"
+              className="mb-1 inline-block text-xs font-medium text-zinc-500 hover:text-zinc-100"
             >
               ← Scrip
             </Link>
@@ -59,16 +59,16 @@ export default function AppPage() {
           <ConnectButton wallet={wallet} />
         </header>
 
-        <div className="rounded-lg border border-black/10 bg-white px-4 py-3 text-sm">
-          <span className="font-semibold">Privacy boundary:</span>{" "}
-          <span className="text-zinc-600">
+        <div className="rounded-lg border border-white/10 bg-white/[.03] px-4 py-3 text-sm">
+          <span className="font-semibold text-zinc-100">Privacy boundary:</span>{" "}
+          <span className="text-zinc-400">
             sealed = each owner&apos;s percentage, each payout, the allocation math. Public = that a
             split exists, owner addresses, and the total revenue distributed (provable — 0xSplits&apos;
             balance is public). Nobody&apos;s identity is hidden; the amounts are.
           </span>
         </div>
 
-        <nav className="flex gap-1 border-b border-black/10">
+        <nav className="flex gap-1 border-b border-white/10">
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -91,7 +91,7 @@ export default function AppPage() {
           {tab === "auditor" && <AuditorPanel wallet={wallet} />}
         </main>
 
-        <footer className="mt-auto flex flex-col gap-1.5 border-t border-black/10 pt-6">
+        <footer className="mt-auto flex flex-col gap-1.5 border-t border-white/10 pt-6">
           <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
             Deployed on Ethereum Sepolia
           </p>

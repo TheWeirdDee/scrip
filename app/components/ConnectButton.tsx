@@ -9,8 +9,8 @@ function short(addr: string) {
 export function ConnectButton({ wallet }: { wallet: WalletState }) {
   if (wallet.address) {
     return (
-      <div className="flex items-center gap-2 rounded-full border border-black/10 bg-black/[.03] px-4 py-1.5 text-sm font-mono">
-        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+      <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[.05] px-4 py-1.5 text-sm font-mono">
+        <span className="h-2 w-2 rounded-full bg-emerald-400" />
         {short(wallet.address)}
       </div>
     );
@@ -21,11 +21,11 @@ export function ConnectButton({ wallet }: { wallet: WalletState }) {
       <button
         onClick={wallet.connect}
         disabled={wallet.connecting}
-        className="rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50"
+        className="rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background transition-colors hover:bg-zinc-200 disabled:opacity-50"
       >
         {wallet.connecting ? "Connecting…" : "Connect wallet"}
       </button>
-      {wallet.error && <span className="text-xs text-red-500">{wallet.error}</span>}
+      {wallet.error && <span className="text-xs text-red-400">{wallet.error}</span>}
     </div>
   );
 }

@@ -36,7 +36,7 @@ export function DecryptField({
           : value.toString();
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-black/10 bg-black/[.02] px-4 py-3">
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-white/10 bg-white/[.03] px-4 py-3">
       <div className="min-w-0 flex-1">
         <div className="text-xs uppercase tracking-wide text-zinc-500">
           {label}
@@ -48,21 +48,21 @@ export function DecryptField({
         <button
           onClick={() => handleClient && run(handleClient, handle)}
           disabled={!handleClient}
-          className="shrink-0 rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-40"
+          className="shrink-0 rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background transition-colors hover:bg-zinc-200 disabled:opacity-40"
         >
           Decrypt
         </button>
       )}
 
       {status === "computing" && (
-        <div className="flex shrink-0 items-center gap-2 text-sm text-amber-600">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
+        <div className="flex shrink-0 items-center gap-2 text-sm text-amber-400">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" />
           computing in the TEE… (attempt {attempt}/12)
         </div>
       )}
 
       {status === "done" && (
-        <div className="shrink-0 font-mono text-sm font-semibold text-emerald-600">
+        <div className="shrink-0 font-mono text-sm font-semibold text-emerald-400">
           {formatted}
         </div>
       )}
@@ -77,7 +77,7 @@ export function DecryptField({
       )}
 
       {status === "error" && (
-        <div className="shrink-0 text-sm text-red-600" title={message ?? undefined}>
+        <div className="shrink-0 text-sm text-red-400" title={message ?? undefined}>
           error decrypting
         </div>
       )}
