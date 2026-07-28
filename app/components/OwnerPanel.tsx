@@ -31,7 +31,7 @@ export function OwnerPanel({ wallet }: { wallet: WalletState }) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 owner-panel">
       <p className="text-sm text-zinc-500">
         This decrypts <span className="font-mono">confidentialBalanceOf(you)</span> — only you can
         authorize this decryption; nobody else, including the founder, can see this number for your

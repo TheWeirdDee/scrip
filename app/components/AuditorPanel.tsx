@@ -54,7 +54,7 @@ export function AuditorPanel({ wallet }: { wallet: WalletState }) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 auditor-panel">
       <p className="text-sm text-zinc-500">
         If the founder has granted this wallet auditor access to a cap table, every owner&apos;s
         sealed percentage below will decrypt. If not, every one of them will be denied — same as

@@ -68,6 +68,7 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wallet.walletClient]);
@@ -188,7 +189,7 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 founder-panel">
       <section>
         <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500">
           Existing cap tables
