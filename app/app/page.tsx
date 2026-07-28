@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Plus, ArrowUpRight, Check } from "lucide-react";
 import { useWallet } from "@/app/lib/useWallet";
 import { ConnectButton } from "@/app/components/ConnectButton";
 import { FounderPanel } from "@/app/components/FounderPanel";
@@ -44,7 +45,7 @@ export default function AppPage() {
   return <div className="dashboard-shell">
     <aside className="dashboard-sidebar">
       <Link href="/" className="dashboard-logo"><Logo /></Link>
-      <button className="sidebar-primary" onClick={() => role === "founder" ? document.getElementById("role-content")?.scrollIntoView() : switchRole("founder")}><span>＋</span> New cap table</button>
+      <button className="sidebar-primary" onClick={() => role === "founder" ? document.getElementById("role-content")?.scrollIntoView() : switchRole("founder")}><Plus size={17} /> New cap table</button>
       <nav className="sidebar-nav" aria-label="Dashboard">
         <span className="sidebar-label">Workspace</span>
         <button className="active"><Icon name="grid"/>Overview</button>
@@ -52,7 +53,7 @@ export default function AppPage() {
         {role === "founder" && <><button><Icon name="table"/>Cap tables</button><button><Icon name="send"/>Distributions</button></>}
         {role === "auditor" && <button><Icon name="audit"/>Audit requests</button>}
         <span className="sidebar-label sidebar-label-spaced">Network</span>
-        <a href={`https://sepolia.etherscan.io/address/${SCRIP_DISTRIBUTOR_ADDRESS}`} target="_blank" rel="noreferrer"><Icon name="shield"/>Contracts <span>↗</span></a>
+        <a href={`https://sepolia.etherscan.io/address/${SCRIP_DISTRIBUTOR_ADDRESS}`} target="_blank" rel="noreferrer"><Icon name="shield"/>Contracts <ArrowUpRight size={13} /></a>
       </nav>
       <div className="sidebar-foot"><Link href="/"><Icon name="help"/>Product guide</Link><div className="network-chip"><i/>Sepolia <span>Live</span></div></div>
     </aside>
@@ -64,7 +65,7 @@ export default function AppPage() {
         <div className="topbar-actions">
           <div className="role-switcher">
             <button className="role-trigger" onClick={() => setRoleMenu(!roleMenu)} aria-expanded={roleMenu}><span className={`role-symbol ${role}`}>{role.slice(0,1).toUpperCase()}</span><span>{current.label}</span><Icon name="switch"/></button>
-            {roleMenu && <div className="role-menu"><span>Switch workspace</span>{(Object.keys(ROLES) as Role[]).map(item => <button className={role===item?"selected":""} key={item} onClick={()=>switchRole(item)}><span className={`role-symbol ${item}`}>{item.slice(0,1).toUpperCase()}</span><div><strong>{ROLES[item].label}</strong><small>{ROLES[item].description}</small></div>{role===item&&<b>✓</b>}</button>)}</div>}
+            {roleMenu && <div className="role-menu"><span>Switch workspace</span>{(Object.keys(ROLES) as Role[]).map(item => <button className={role===item?"selected":""} key={item} onClick={()=>switchRole(item)}><span className={`role-symbol ${item}`}>{item.slice(0,1).toUpperCase()}</span><div><strong>{ROLES[item].label}</strong><small>{ROLES[item].description}</small></div>{role===item&&<Check size={14} />}</button>)}</div>}
           </div>
           <ConnectButton wallet={wallet}/>
         </div>
@@ -88,7 +89,7 @@ export default function AppPage() {
             <header><div><span className={`role-symbol ${role}`}>{role.slice(0,1).toUpperCase()}</span><div><h2>{current.noun}</h2><p>{current.description}</p></div></div><span className="sealed-badge"><Icon name="shield"/>Confidential</span></header>
             <div className="role-content">{role === "founder" && <FounderPanel wallet={wallet}/>} {role === "owner" && <OwnerPanel wallet={wallet}/>} {role === "auditor" && <AuditorPanel wallet={wallet}/>}</div>
           </section>
-          <section className="dashboard-info"><div><Icon name="shield"/><p><strong>Your privacy boundary</strong><span>Addresses and total distributions are public. Ownership percentages and individual payouts stay sealed.</span></p></div><a href={`https://sepolia.etherscan.io/address/${CONFIDENTIAL_USDC_ADDRESS}`} target="_blank" rel="noreferrer">View confidential token ↗</a></section>
+          <section className="dashboard-info"><div><Icon name="shield"/><p><strong>Your privacy boundary</strong><span>Addresses and total distributions are public. Ownership percentages and individual payouts stay sealed.</span></p></div><a href={`https://sepolia.etherscan.io/address/${CONFIDENTIAL_USDC_ADDRESS}`} target="_blank" rel="noreferrer">View confidential token <ArrowUpRight size={13} /></a></section>
         </>}
       </main>
     </div>
