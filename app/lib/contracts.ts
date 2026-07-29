@@ -21,11 +21,18 @@ export const scripDistributorAbi = parseAbi([
   "function capTableCount() view returns (uint256)",
   "function getOwners(uint256 id) view returns (address[])",
   "function sealedPercentage(uint256 id, uint256 index) view returns (bytes32)",
+  "function splitAddress() view returns (address)",
   "function createCapTable(address[] owners, bytes32[] sealedPctHandles, bytes[] proofs) returns (uint256 id)",
   "function lockPercentages(uint256 id)",
   "function poolRevenue(uint256 id) returns (uint256 publicTotal)",
   "function distribute(uint256 id, uint256 publicTotal)",
   "function grantAuditor(uint256 id, address auditor)",
+  "event SplitSet(address indexed split)",
+  "event CapTableCreated(uint256 indexed id, address indexed founder, address[] owners)",
+  "event PercentagesLocked(uint256 indexed id)",
+  "event RevenuePooled(uint256 indexed id, uint256 publicTotal)",
+  "event DistributionTriggered(uint256 indexed id, uint256 publicTotal)",
+  "event AuditorGranted(uint256 indexed id, address auditor)",
 ]);
 
 export const confidentialUsdcAbi = parseAbi([

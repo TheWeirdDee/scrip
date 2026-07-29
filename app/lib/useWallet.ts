@@ -5,7 +5,7 @@ import { createWalletClient, custom, publicActions, type Address, type EIP1193Pr
 import { sepolia } from "viem/chains";
 import { createViemHandleClient } from "@iexec-nox/handle";
 
-type ViemWalletClient = ReturnType<typeof createWalletClient> & ReturnType<typeof publicActions>;
+export type ViemWalletClient = ReturnType<typeof createWalletClient> & ReturnType<typeof publicActions>;
 type HandleClient = Awaited<ReturnType<typeof createViemHandleClient>>;
 
 export interface WalletState {
