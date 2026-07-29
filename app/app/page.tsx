@@ -13,6 +13,7 @@ import { AuditorPanel } from "@/app/components/AuditorPanel";
 import { Logo } from "@/app/components/Logo";
 import { SCRIP_DISTRIBUTOR_ADDRESS, CONFIDENTIAL_USDC_ADDRESS, scripDistributorAbi } from "@/app/lib/contracts";
 import { shortAddr, etherscanAddress } from "@/app/lib/format";
+import { fetchScripState } from "@/app/lib/events";
 
 type Role = "owner" | "founder" | "auditor";
 type FounderView = "overview" | "capTables" | "distributions";
@@ -46,14 +47,59 @@ const FOUNDER_VIEW_META: Record<FounderView, { noun: string; description: string
 
 export default function AppPage() {
   const wallet = useWallet();
-  const [role, setRole] = useState<Role>("owner");
+  const [role, setRole] = useState<Role | null>(null);
+  const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
+  const [rolesError, setRolesError] = useState<string | null>(null);
   const [roleMenu, setRoleMenu] = useState(false);
   const [founderView, setFounderView] = useState<FounderView>("overview");
   const [splitAddr, setSplitAddr] = useState<string | null>(null);
-  const current = ROLES[role];
+  const current = role ? ROLES[role] : null;
   const { noun: activeNoun, description: activeDescription } =
-    role === "founder" ? FOUNDER_VIEW_META[founderView] : current;
+    role === "founder" ? FOUNDER_VIEW_META[founderView] : current ?? { noun: "Wallet access", description: "Checking your on-chain permissions." };
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!wallet.walletClient || !wallet.address) {
+      queueMicrotask(() => {
+        if (cancelled) return;
+        setAvailableRoles([]);
+        setRole(null);
+      });
+      return () => { cancelled = true; };
+    }
+    // Loading mirrors an external wallet/RPC synchronization cycle.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRolesLoading(true);
+    setRolesError(null);
+    (async () => {
+      try {
+        const count = await wallet.walletClient!.readContract({
+          address: SCRIP_DISTRIBUTOR_ADDRESS,
+          abi: scripDistributorAbi,
+          functionName: "capTableCount",
+        });
+        const state = await fetchScripState(wallet.walletClient!, count);
+        if (cancelled) return;
+        const address = wallet.address!.toLowerCase();
+        const detected: Role[] = [];
+        if (state.capTables.some((table) => table.founder.toLowerCase() === address)) detected.push("founder");
+        if (state.capTables.some((table) => table.owners.some((owner) => owner.toLowerCase() === address))) detected.push("owner");
+        if (state.auditorGrants.some((grant) => grant.auditor.toLowerCase() === address)) detected.push("auditor");
+        setAvailableRoles(detected);
+        setRole((previous) => previous && detected.includes(previous) ? previous : detected[0] ?? null);
+      } catch (err) {
+        if (!cancelled) {
+          setAvailableRoles([]);
+          setRole(null);
+          setRolesError(err instanceof Error ? err.message : String(err));
+        }
+      } finally {
+        if (!cancelled) setRolesLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [wallet.address, wallet.walletClient]);
   useEffect(() => {
     if (!wallet.walletClient) return;
     wallet.walletClient
@@ -66,12 +112,12 @@ export default function AppPage() {
       .catch(() => {});
   }, [wallet.walletClient]);
 
-  const switchRole = (next: Role) => { setRole(next); setRoleMenu(false); setFounderView("overview"); };
+  const switchRole = (next: Role) => { if (!availableRoles.includes(next)) return; setRole(next); setRoleMenu(false); setFounderView("overview"); };
 
   return <div className="dashboard-shell">
     <aside className="dashboard-sidebar">
       <Link href="/" className="dashboard-logo"><Logo /></Link>
-      <button className="sidebar-primary" onClick={() => { if (role === "founder") { setFounderView("overview"); document.getElementById("role-content")?.scrollIntoView(); } else { switchRole("founder"); } }}><Plus size={17} /> New cap table</button>
+      {availableRoles.includes("founder") && <button className="sidebar-primary" onClick={() => { if (role === "founder") { setFounderView("overview"); document.getElementById("role-content")?.scrollIntoView(); } else { switchRole("founder"); } }}><Plus size={17} /> New cap table</button>}
       <nav className="sidebar-nav" aria-label="Dashboard">
         <span className="sidebar-label">Workspace</span>
         <button
@@ -95,10 +141,10 @@ export default function AppPage() {
         <div className="mobile-brand"><Logo withWordmark={false}/></div>
         <div className="crumbs"><span>Scrip</span><b>/</b><strong>{activeNoun}</strong></div>
         <div className="topbar-actions">
-          <div className="role-switcher">
-            <button className="role-trigger" onClick={() => setRoleMenu(!roleMenu)} aria-expanded={roleMenu}><span className={`role-symbol ${role}`}>{role.slice(0,1).toUpperCase()}</span><span>{current.label}</span><Icon name="switch"/></button>
-            {roleMenu && <div className="role-menu"><span>Switch workspace</span>{(Object.keys(ROLES) as Role[]).map(item => <button className={role===item?"selected":""} key={item} onClick={()=>switchRole(item)}><span className={`role-symbol ${item}`}>{item.slice(0,1).toUpperCase()}</span><div><strong>{ROLES[item].label}</strong><small>{ROLES[item].description}</small></div>{role===item&&<Check size={14} />}</button>)}</div>}
-          </div>
+          {role && availableRoles.length > 1 && <div className="role-switcher">
+            <button className="role-trigger" onClick={() => setRoleMenu(!roleMenu)} aria-expanded={roleMenu}><span className={`role-symbol ${role}`}>{role.slice(0,1).toUpperCase()}</span><span>{current!.label}</span><Icon name="switch"/></button>
+            {roleMenu && <div className="role-menu"><span>Switch workspace</span>{availableRoles.map(item => <button className={role===item?"selected":""} key={item} onClick={()=>switchRole(item)}><span className={`role-symbol ${item}`}>{item.slice(0,1).toUpperCase()}</span><div><strong>{ROLES[item].label}</strong><small>{ROLES[item].description}</small></div>{role===item&&<Check size={14} />}</button>)}</div>}
+          </div>}
           <ConnectButton wallet={wallet}/>
         </div>
       </header>
@@ -110,8 +156,10 @@ export default function AppPage() {
             <div className="onboarding-steps"><div className="onboarding-step done"><span>1</span><div><strong>Choose a workspace</strong><p>Switch roles at any time from the top bar.</p></div><b>Done</b></div><div className="onboarding-step current"><span>2</span><div><strong>Connect your wallet</strong><p>Scrip works with your existing Ethereum wallet.</p></div></div><div className="onboarding-step"><span>3</span><div><strong>Open your private view</strong><p>Your available tools and permissions load automatically.</p></div></div></div>
             <div className="onboarding-action"><div className="secure-mark"><Icon name="shield"/></div><span>Step 2 of 3</span><h2>Connect to continue</h2><p>Use a wallet on Ethereum Sepolia. Scrip never takes custody of your assets or keys.</p><ConnectButton wallet={wallet}/><small><i/>Encrypted inputs are prepared locally in your browser.</small></div>
           </div>
-        </section> : <>
-          <section className="dashboard-heading"><div><span className="dashboard-eyebrow">{current.label} workspace</span><h1>{activeNoun}</h1><p>{activeDescription}</p></div><div className="heading-status"><i/>Connected to Sepolia</div></section>
+        </section> : rolesLoading ? <section className="onboarding"><div className="onboarding-copy"><span className="dashboard-eyebrow">Verifying access</span><h1>Reading wallet roles from Sepolia…</h1><p>Founder, owner, and auditor access is derived from the distributor contract.</p></div></section>
+        : !role ? <section className="onboarding"><div className="onboarding-copy"><span className="dashboard-eyebrow">No on-chain role</span><h1>This wallet has no Scrip access.</h1><p>{rolesError ? `Role detection failed: ${rolesError}` : "This address has not created a cap table, is not listed as an owner, and has not been granted auditor access."}</p></div></section>
+        : <>
+          <section className="dashboard-heading"><div><span className="dashboard-eyebrow">{current!.label} workspace</span><h1>{activeNoun}</h1><p>{activeDescription}</p></div><div className="heading-status"><i/>Connected to Sepolia</div></section>
           <section className="metric-grid">
             <article><div><span>Privacy status</span><Icon name="shield"/></div><strong>Protected</strong><p>Amounts remain encrypted</p></article>
             <article><div><span>Settlement asset</span><Icon name="wallet"/></div><strong>cUSDC</strong><p>Confidential ERC-7984</p></article>
