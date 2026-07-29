@@ -17,6 +17,7 @@ import { fetchScripState } from "@/app/lib/events";
 
 type Role = "owner" | "founder" | "auditor";
 type FounderView = "overview" | "capTables" | "distributions";
+type OwnerView = "overview" | "balance";
 type IconName = "grid" | "wallet" | "table" | "send" | "audit" | "shield" | "help" | "switch";
 
 const ROLES: Record<Role, { label: string; noun: string; description: string }> = {
@@ -53,10 +54,12 @@ export default function AppPage() {
   const [rolesError, setRolesError] = useState<string | null>(null);
   const [roleMenu, setRoleMenu] = useState(false);
   const [founderView, setFounderView] = useState<FounderView>("overview");
+  const [ownerView, setOwnerView] = useState<OwnerView>("overview");
   const [splitAddr, setSplitAddr] = useState<string | null>(null);
   const current = role ? ROLES[role] : null;
+  const ownerMeta = ownerView === "balance" ? { noun: "Private balance", description: "Decrypt your balance and review public distribution activity for cap tables that include your wallet." } : ROLES.owner;
   const { noun: activeNoun, description: activeDescription } =
-    role === "founder" ? FOUNDER_VIEW_META[founderView] : current ?? { noun: "Wallet access", description: "Checking your on-chain permissions." };
+    role === "founder" ? FOUNDER_VIEW_META[founderView] : role === "owner" ? ownerMeta : current ?? { noun: "Wallet access", description: "Checking your on-chain permissions." };
 
   useEffect(() => {
     let cancelled = false;
@@ -112,7 +115,7 @@ export default function AppPage() {
       .catch(() => {});
   }, [wallet.walletClient]);
 
-  const switchRole = (next: Role) => { if (!availableRoles.includes(next)) return; setRole(next); setRoleMenu(false); setFounderView("overview"); };
+  const switchRole = (next: Role) => { if (!availableRoles.includes(next)) return; setRole(next); setRoleMenu(false); setFounderView("overview"); setOwnerView("overview"); };
 
   return <div className="dashboard-shell">
     <aside className="dashboard-sidebar">
@@ -121,10 +124,10 @@ export default function AppPage() {
       <nav className="sidebar-nav" aria-label="Dashboard">
         <span className="sidebar-label">Workspace</span>
         <button
-          className={role !== "founder" || founderView === "overview" ? "active" : ""}
-          onClick={() => setFounderView("overview")}
+          className={(role === "founder" && founderView === "overview") || (role === "owner" && ownerView === "overview") || role === "auditor" ? "active" : ""}
+          onClick={() => { setFounderView("overview"); setOwnerView("overview"); }}
         ><Icon name="grid"/>Overview</button>
-        {role === "owner" && <button><Icon name="wallet"/>Private balance</button>}
+        {role === "owner" && <button className={ownerView === "balance" ? "active" : ""} onClick={() => setOwnerView("balance")}><Icon name="wallet"/>Private balance</button>}
         {role === "founder" && <>
           <button className={founderView === "capTables" ? "active" : ""} onClick={() => setFounderView("capTables")}><Icon name="table"/>Cap tables</button>
           <button className={founderView === "distributions" ? "active" : ""} onClick={() => setFounderView("distributions")}><Icon name="send"/>Distributions</button>
@@ -171,7 +174,7 @@ export default function AppPage() {
               {role === "founder" && founderView === "overview" && <FounderPanel wallet={wallet}/>}
               {role === "founder" && founderView === "capTables" && <CapTablesPanel wallet={wallet}/>}
               {role === "founder" && founderView === "distributions" && <DistributionsPanel wallet={wallet}/>}
-              {role === "owner" && <OwnerPanel wallet={wallet}/>}
+              {role === "owner" && <OwnerPanel wallet={wallet} showHistory={ownerView === "balance"}/>}
               {role === "auditor" && <AuditorPanel wallet={wallet}/>}
             </div>
           </section>
