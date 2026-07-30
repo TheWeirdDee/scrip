@@ -32,6 +32,7 @@ export interface WalletState {
   // The UI should offer these instead of calling connect() directly.
   walletChoices: WalletOption[];
   chooseWallet: (rdns: string) => Promise<void>;
+  disconnect: () => Promise<void>;
 }
 
 interface EIP6963ProviderInfo {
@@ -75,6 +76,7 @@ export function useWallet(): WalletState {
   const handleClientRequestId = useRef(0);
   const discovered = useRef(new Map<string, EIP6963ProviderDetail>());
   const listenersCleanup = useRef<(() => void) | null>(null);
+  const attachedProvider = useRef<EventedProvider | null>(null);
 
   const clearWallet = useCallback(() => {
     requestId.current += 1;
@@ -107,25 +109,38 @@ export function useWallet(): WalletState {
   // Holds its own latest reference (rather than closing over its own useCallback binding) so the
   // accountsChanged/chainChanged listeners below can call back into it without a self-reference.
   const runWithRef = useRef<(provider: EventedProvider, requestAccess: boolean) => Promise<void>>(async () => {});
-  const runWith = useCallback(async (provider: EventedProvider, requestAccess: boolean) => {
-    const currentRequest = ++requestId.current;
-    setError(null);
-    if (requestAccess) setConnecting(true);
 
+  // Attaches change listeners to a provider exactly once. Some wallets replay their current state
+  // (e.g. an immediate chainChanged) the moment a listener is registered — re-running this on
+  // every restore/change would tear down and re-add listeners in a tight loop, which is exactly
+  // what produced the "MaxListenersExceededWarning" / orphaned-stream churn and the connect-then-
+  // instantly-disconnect symptom. Idempotent per provider object fixes that at the source.
+  const ensureListeners = useCallback((provider: EventedProvider) => {
+    if (attachedProvider.current === provider) return;
     listenersCleanup.current?.();
     const onAccountsChanged = (accounts: unknown) => {
       if (!Array.isArray(accounts) || accounts.length === 0) clearWallet();
       else void runWithRef.current(provider, false);
     };
     const onChainChanged = () => void runWithRef.current(provider, false);
+    const onDisconnect = () => clearWallet();
     provider.on?.("accountsChanged", onAccountsChanged);
     provider.on?.("chainChanged", onChainChanged);
-    provider.on?.("disconnect", clearWallet);
+    provider.on?.("disconnect", onDisconnect);
+    attachedProvider.current = provider;
     listenersCleanup.current = () => {
       provider.removeListener?.("accountsChanged", onAccountsChanged);
       provider.removeListener?.("chainChanged", onChainChanged);
-      provider.removeListener?.("disconnect", clearWallet);
+      provider.removeListener?.("disconnect", onDisconnect);
+      if (attachedProvider.current === provider) attachedProvider.current = null;
     };
+  }, [clearWallet]);
+
+  const runWith = useCallback(async (provider: EventedProvider, requestAccess: boolean) => {
+    const currentRequest = ++requestId.current;
+    setError(null);
+    if (requestAccess) setConnecting(true);
+    ensureListeners(provider);
 
     try {
       const client = createWalletClient({ chain: sepolia, transport: custom(provider) }).extend(publicActions);
@@ -164,7 +179,7 @@ export function useWallet(): WalletState {
         else setRestoring(false);
       }
     }
-  }, [clearWallet, attachHandleClient]);
+  }, [ensureListeners, clearWallet, attachHandleClient]);
   useEffect(() => { runWithRef.current = runWith; }, [runWith]);
 
   // Decides which provider to talk to: a remembered choice, the only one installed, or — if
@@ -228,6 +243,28 @@ export function useWallet(): WalletState {
     await runWith(detail.provider, true);
   }, [runWith]);
 
+  // App-level disconnect: clears local state and the remembered wallet/session so the next load
+  // shows the connect screen instead of silently restoring. Also asks the wallet to forget the
+  // permission grant (EIP-2255 wallet_revokePermissions) where supported — best-effort, since most
+  // wallets only let a dapp forget its own session, not force-revoke the extension's own memory.
+  const disconnect = useCallback(async () => {
+    const provider = attachedProvider.current;
+    window.localStorage.removeItem(PROVIDER_HINT_KEY);
+    clearWallet();
+    setWalletChoices([]);
+    // Stop reacting to this provider until the user explicitly reconnects, so a stray event from
+    // the just-revoked session can't silently re-establish the connection we were just asked to end.
+    listenersCleanup.current?.();
+    if (provider) {
+      try {
+        await (provider as unknown as { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> })
+          .request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] });
+      } catch {
+        // Not all wallets support permission revocation — the local disconnect above still holds.
+      }
+    }
+  }, [clearWallet]);
+
   useEffect(() => {
     let disposed = false;
     const onAnnounce = (event: Event) => {
@@ -253,7 +290,7 @@ export function useWallet(): WalletState {
     };
   }, [resolveAndRun]);
 
-  return { address, walletClient, handleClient, connecting, restoring, error, connect, walletChoices, chooseWallet };
+  return { address, walletClient, handleClient, connecting, restoring, error, connect, walletChoices, chooseWallet, disconnect };
 }
 
 declare global {

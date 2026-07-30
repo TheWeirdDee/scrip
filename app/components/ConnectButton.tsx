@@ -1,9 +1,18 @@
 "use client";
-import { ChevronDown, ArrowUpRight } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, ArrowUpRight, LogOut } from "lucide-react";
 import type { WalletState } from "@/app/lib/useWallet";
 function short(addr: string) { return `${addr.slice(0, 6)}…${addr.slice(-4)}`; }
 export function ConnectButton({ wallet }: { wallet: WalletState }) {
-  if (wallet.address) return <div className="wallet-control"><span className="wallet-identicon">{wallet.address.slice(2,4).toUpperCase()}</span><span>{short(wallet.address)}</span><ChevronDown size={14} /></div>;
+  const [open, setOpen] = useState(false);
+  if (wallet.address) return <div className="connect-wrap wallet-picker">
+    <button onClick={() => setOpen(!open)} className="wallet-control">
+      <span className="wallet-identicon">{wallet.address.slice(2,4).toUpperCase()}</span><span>{short(wallet.address)}</span><ChevronDown size={14} />
+    </button>
+    {open && <div className="wallet-picker-list">
+      <button className="wallet-picker-option" onClick={() => { setOpen(false); wallet.disconnect(); }}><LogOut size={14} />Disconnect</button>
+    </div>}
+  </div>;
   if (wallet.walletChoices.length > 0) return <div className="connect-wrap wallet-picker">
     <span className="wallet-picker-label">Multiple wallets found — choose one</span>
     <div className="wallet-picker-list">
