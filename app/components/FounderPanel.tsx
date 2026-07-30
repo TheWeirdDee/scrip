@@ -332,6 +332,10 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
         <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500">
           Grant auditor
         </h3>
+        <p className="mb-3 text-sm text-zinc-500">
+          Let an investor or auditor verify a distribution privately — scoped, on-chain, revocable
+          — without making the cap table public.
+        </p>
         <div className="flex flex-wrap gap-2">
           <input
             value={auditorTableId}

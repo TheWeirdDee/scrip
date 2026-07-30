@@ -21,8 +21,8 @@ type OwnerView = "overview" | "balance";
 type IconName = "grid" | "wallet" | "table" | "send" | "audit" | "shield" | "help" | "switch";
 
 const ROLES: Record<Role, { label: string; noun: string; description: string }> = {
-  owner: { label: "Owner", noun: "My ownership", description: "View and reveal only the confidential value assigned to your wallet." },
-  founder: { label: "Founder", noun: "Distribution desk", description: "Create ownership schedules, route revenue, and manage disclosure." },
+  owner: { label: "Owner", noun: "My ownership", description: "Only you can see your share. Not other owners, not the founder, not the public — but the total is provable to everyone." },
+  founder: { label: "Founder", noun: "Distribution desk", description: "Pay your owners and prove the total — without publishing who earns what." },
   auditor: { label: "Auditor", noun: "Audit workspace", description: "Review cap tables that have been explicitly shared with your wallet." },
 };
 
@@ -153,7 +153,8 @@ export default function AppPage() {
       </header>
 
       <main className="dashboard-content">
-        {!wallet.address ? <section className="onboarding">
+        {!wallet.address && wallet.restoring ? <section className="onboarding"><div className="onboarding-copy"><span className="dashboard-eyebrow">Welcome back</span><h1>Restoring your session…</h1><p>Reconnecting your wallet — your role and permissions will load automatically.</p></div></section>
+        : !wallet.address ? <section className="onboarding">
           <div className="onboarding-copy"><span className="dashboard-eyebrow">Welcome to Scrip</span><h1>Your private ownership workspace.</h1><p>Connect a Sepolia wallet, choose how you&apos;re using Scrip, and we&apos;ll take you directly to the tools you need.</p></div>
           <div className="onboarding-grid">
             <div className="onboarding-steps"><div className="onboarding-step done"><span>1</span><div><strong>Choose a workspace</strong><p>Switch roles at any time from the top bar.</p></div><b>Done</b></div><div className="onboarding-step current"><span>2</span><div><strong>Connect your wallet</strong><p>Scrip works with your existing Ethereum wallet.</p></div></div><div className="onboarding-step"><span>3</span><div><strong>Open your private view</strong><p>Your available tools and permissions load automatically.</p></div></div></div>

@@ -57,9 +57,12 @@ export function OwnerPanel({ wallet, showHistory = false }: { wallet: WalletStat
     <div className="flex flex-col gap-6 owner-panel">
       <div>
         <p className="text-sm text-zinc-500">
-          This reads <span className="font-mono">confidentialBalanceOf(you)</span>. Only this wallet can authorize decryption; the founder and other owners cannot reveal it.
+          Only you can see your share. Not other owners, not the founder, not the public — but the
+          total is provable to everyone.
         </p>
-        <p className="mt-2 text-xs text-zinc-600">Nox decryption on Sepolia may take 10–15 seconds while the TEE resolves the sealed handle.</p>
+        <p className="mt-2 text-xs text-zinc-600">
+          This reads <span className="font-mono">confidentialBalanceOf(you)</span> — only this wallet can authorize decryption. Nox decryption on Sepolia may take 10–15 seconds while the TEE resolves the sealed handle.
+        </p>
       </div>
       {error && <p className="text-sm text-red-400">{error}</p>}
       {balanceHandle ? (
