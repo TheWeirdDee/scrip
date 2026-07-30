@@ -123,7 +123,12 @@ export function useWallet(): WalletState {
       else void runWithRef.current(provider, false);
     };
     const onChainChanged = () => void runWithRef.current(provider, false);
-    const onDisconnect = () => clearWallet();
+    // EIP-1193 "disconnect" fires when the provider's connection to the network drops — a
+    // transient RPC/websocket blip inside the wallet extension, NOT the user revoking access. Only
+    // eth_accounts coming back empty (via onAccountsChanged above) means the user actually
+    // disconnected. Treating this event as an instant logout is what caused the wallet to flap
+    // between connected/disconnected on its own; re-verifying instead lets a real blip self-heal.
+    const onDisconnect = () => void runWithRef.current(provider, false);
     provider.on?.("accountsChanged", onAccountsChanged);
     provider.on?.("chainChanged", onChainChanged);
     provider.on?.("disconnect", onDisconnect);
