@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import type { WalletState } from "@/app/lib/useWallet";
-import { SCRIP_DISTRIBUTOR_ADDRESS, scripDistributorAbi } from "@/app/lib/contracts";
-import { fetchScripState, type ScripState } from "@/app/lib/events";
+import { SCRIP_WATERFALL_ADDRESS, scripWaterfallAbi } from "@/app/lib/contracts";
+import { fetchWaterfallState, type WaterfallState } from "@/app/lib/waterfallEvents";
 import { shortAddr, formatUsdc, formatDate, etherscanAddress, etherscanTx } from "@/app/lib/format";
 
 type TxStatus = { state: "idle" | "pending" | "done" | "error"; hash?: string; message?: string };
 
 export function CapTablesPanel({ wallet }: { wallet: WalletState }) {
-  const [scripState, setScripState] = useState<ScripState | null>(null);
+  const [waterfallState, setWaterfallState] = useState<WaterfallState | null>(null);
   const [splitAddr, setSplitAddr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,19 +23,19 @@ export function CapTablesPanel({ wallet }: { wallet: WalletState }) {
     setLoading(true);
     try {
       const count = await wallet.walletClient.readContract({
-        address: SCRIP_DISTRIBUTOR_ADDRESS,
-        abi: scripDistributorAbi,
+        address: SCRIP_WATERFALL_ADDRESS,
+        abi: scripWaterfallAbi,
         functionName: "capTableCount",
       });
       const [state, split] = await Promise.all([
-        fetchScripState(wallet.walletClient, count),
+        fetchWaterfallState(wallet.walletClient, count),
         wallet.walletClient.readContract({
-          address: SCRIP_DISTRIBUTOR_ADDRESS,
-          abi: scripDistributorAbi,
+          address: SCRIP_WATERFALL_ADDRESS,
+          abi: scripWaterfallAbi,
           functionName: "splitAddress",
         }),
       ]);
-      setScripState(state);
+      setWaterfallState(state);
       setSplitAddr(split as string);
       setError(null);
     } catch (err) {
@@ -56,8 +56,8 @@ export function CapTablesPanel({ wallet }: { wallet: WalletState }) {
     setGrantTx({ state: "pending" });
     try {
       const hash = await wallet.walletClient.writeContract({
-        address: SCRIP_DISTRIBUTOR_ADDRESS,
-        abi: scripDistributorAbi,
+        address: SCRIP_WATERFALL_ADDRESS,
+        abi: scripWaterfallAbi,
         functionName: "grantAuditor",
         args: [id, auditorAddr as `0x${string}`],
         account: wallet.address,
@@ -73,25 +73,25 @@ export function CapTablesPanel({ wallet }: { wallet: WalletState }) {
   };
 
   if (!wallet.address) {
-    return <p className="text-sm text-zinc-500">Connect a wallet to view cap tables.</p>;
+    return <p className="text-sm text-zinc-500">Connect a wallet to view waterfalls.</p>;
   }
 
-  if (loading && !scripState) {
-    return <p className="text-sm text-zinc-500">Loading cap tables from Sepolia…</p>;
+  if (loading && !waterfallState) {
+    return <p className="text-sm text-zinc-500">Loading waterfalls from Sepolia…</p>;
   }
 
   if (error) {
     return <p className="text-sm text-red-400">{error}</p>;
   }
 
-  const myTables = (scripState?.capTables ?? []).filter(
+  const myTables = (waterfallState?.capTables ?? []).filter(
     (t) => t.founder.toLowerCase() === wallet.address!.toLowerCase()
   );
 
   if (myTables.length === 0) {
     return (
       <p className="text-sm text-zinc-500">
-        No cap tables yet. Create one from Overview.
+        No waterfalls yet. Build one from Overview.
       </p>
     );
   }
@@ -99,10 +99,10 @@ export function CapTablesPanel({ wallet }: { wallet: WalletState }) {
   const table = selected !== null ? myTables.find((t) => t.id === selected) : null;
 
   if (table) {
-    const pooled = (scripState?.pooled ?? []).filter((p) => p.id === table.id);
-    const distributions = (scripState?.distributions ?? []).filter((d) => d.id === table.id);
+    const pooled = (waterfallState?.pooled ?? []).filter((p) => p.id === table.id);
+    const distributions = (waterfallState?.distributions ?? []).filter((d) => d.id === table.id);
     const totalDistributed = distributions.reduce((sum, d) => sum + d.publicTotal, 0n);
-    const auditors = (scripState?.auditorGrants ?? []).filter((a) => a.id === table.id);
+    const auditors = (waterfallState?.auditorGrants ?? []).filter((a) => a.id === table.id);
 
     return (
       <div className="flex flex-col gap-6">
@@ -110,12 +110,12 @@ export function CapTablesPanel({ wallet }: { wallet: WalletState }) {
           onClick={() => setSelected(null)}
           className="w-fit text-xs text-zinc-500 hover:text-zinc-300"
         >
-          ← all cap tables
+          ← all waterfalls
         </button>
 
         <div className="rounded-lg border border-white/10 px-4 py-3">
           <div className="flex items-center justify-between">
-            <span className="font-medium">Cap table #{table.id.toString()}</span>
+            <span className="font-medium">Waterfall #{table.id.toString()}</span>
             <span className={table.locked ? "text-xs text-emerald-400" : "text-xs text-amber-400"}>
               {table.locked ? "locked" : "unlocked"}
             </span>
@@ -132,6 +132,9 @@ export function CapTablesPanel({ wallet }: { wallet: WalletState }) {
               </a>
             </p>
           )}
+          <p className="mt-1 text-xs text-zinc-500">
+            {table.tierCount} tier{table.tierCount === 1 ? "" : "s"}, in order — terms sealed
+          </p>
           <p className="mt-2 text-xs text-zinc-500">total distributed to date: {formatUsdc(totalDistributed)} USDC</p>
         </div>
 
@@ -140,7 +143,7 @@ export function CapTablesPanel({ wallet }: { wallet: WalletState }) {
           <ul className="flex flex-col gap-1">
             {table.owners.map((o) => (
               <li key={o} className="font-mono text-xs text-zinc-500">
-                {o} — percentage sealed
+                {o}
               </li>
             ))}
           </ul>
@@ -225,7 +228,7 @@ export function CapTablesPanel({ wallet }: { wallet: WalletState }) {
   return (
     <div className="flex flex-col gap-2">
       {myTables.map((t) => {
-        const distributed = (scripState?.distributions ?? [])
+        const distributed = (waterfallState?.distributions ?? [])
           .filter((d) => d.id === t.id)
           .reduce((sum, d) => sum + d.publicTotal, 0n);
         return (
@@ -235,13 +238,13 @@ export function CapTablesPanel({ wallet }: { wallet: WalletState }) {
             className="w-full rounded-lg border border-white/10 px-4 py-3 text-left text-sm hover:bg-white/[.03]"
           >
             <div className="flex items-center justify-between">
-              <span className="font-medium">Cap table #{t.id.toString()}</span>
+              <span className="font-medium">Waterfall #{t.id.toString()}</span>
               <span className={t.locked ? "text-xs text-emerald-400" : "text-xs text-amber-400"}>
                 {t.locked ? "locked" : "unlocked"}
               </span>
             </div>
             <p className="mt-1 text-xs text-zinc-500">
-              {t.owners.length} owner{t.owners.length === 1 ? "" : "s"} · created {formatDate(t.createdAtMs)} ·
+              {t.owners.length} owner{t.owners.length === 1 ? "" : "s"} · {t.tierCount} tier{t.tierCount === 1 ? "" : "s"} · created {formatDate(t.createdAtMs)} ·
               {" "}distributed {formatUsdc(distributed)} USDC
               {splitAddr && <> · split {shortAddr(splitAddr)}</>}
             </p>

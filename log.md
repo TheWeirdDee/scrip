@@ -4,6 +4,51 @@ Append-only. Newest on top. One entry per session: found / built / rule earned.
 
 ---
 
+## [WATERFALL SHIPPED — real contract, real deploy, real on-chain proof]
+- **Built hardhat/contracts/ScripWaterfall.sol for real** (not the async-callback design in the
+  root spec draft — see correction below), modeled directly on the proven ScripDistributor.sol
+  pattern. Compiles clean first try against the real `@iexec-nox/nox-protocol-contracts` Nox.sol.
+- **CORRECTION to the original ScripWaterfall.sol/PRD draft:** Nox compute is NOT async
+  request/callback. Every `Nox.mul/div/add/sub/lt/select` call is a normal, synchronous Solidity
+  library call — it returns a sealed handle in the SAME transaction, exactly like the already-proven
+  `ScripDistributor.distribute()`. The only genuinely async step anywhere in this system is
+  DECRYPTING a handle afterward (the Handle Gateway's ACL index catching up — same retry pattern
+  already in `app/lib/useDecrypt.ts`). The draft's `fulfillWaterfall()` callback and `onlyNox` guard
+  don't exist and were never needed.
+- **The milestone gate uses `Nox.select(ebool, euint256, euint256)`**, confirmed present in Nox.sol
+  alongside `lt/le/gt/ge/eq/ne` comparisons — `min(remaining, absCap)` is
+  `Nox.select(Nox.lt(remaining, absCap), remaining, absCap)`, and the milestone gate is
+  `Nox.select(milestone, take, zero)`. No sealed value ever branches control flow (every tier runs
+  the same formula), so which tiers are "active" isn't observable from gas/execution path.
+- **Deployed to Sepolia:** `ScripWaterfall` at `0x137077d0c4ef8179b7e405a19ee4e62210e5ae43`; a new
+  unmodified 0xSplits Split at `0x75720eBbBe8a92A21D420A4C6d240dC7299100b5` routing 100% to it
+  (tx `0x6192c1c214af064b5dad81f1f69cd1c77efe34ca1e6882170c77ee9a6621edc3`), kept separate from the
+  original ScripDistributor deployment so the old demo stays intact.
+- **THE PROOF, run for real (not simulated):** two waterfalls, IDENTICAL tier structure (investor
+  recoups first 0.4 USDC; founder 70% base; investor 15% base; a 15% bonus tier gated on a sealed
+  milestone bit, one way for founder, the opposite way for investor) — only the sealed milestone
+  bit differs between them. Both funded with 2 USDC through the real Split, both distributed
+  on-chain, both decrypted:
+  - Cap table 1 (milestone NOT met) — `distribute` tx
+    `0x899c5899338810c323337db9a9e2a13c455d2986de491b8cd71d2b6a4db297a5` — decrypted: founder
+    1.119999 USDC, investor 0.879998 USDC.
+  - Cap table 2 (milestone MET) — `distribute` tx
+    `0xe0c77184ee5201aef964f5734518366ee291b9c891ae5bec1ad2fa3fa801cdae` — decrypted: founder
+    1.36 USDC, investor 0.64 USDC.
+  - Same 2 USDC total, different real decrypted payout, driven by one sealed bit. This is the
+    money shot, and it's real, not the hypothetical $3000 example in the original PRD/demo draft
+    (those numbers are illustrative of the same mechanic at a different scale; the numbers above
+    are what actually happened on Sepolia this session).
+- **Frontend rewired end-to-end:** FounderPanel replaced with a waterfall tier builder (ordered
+  tiers, each a beneficiary + recoup-cap/split-ratio + milestone gate, all encrypted client-side);
+  CapTablesPanel/DistributionsPanel/OwnerPanel/AuditorPanel all switched from ScripDistributor to
+  ScripWaterfall; Overview now shows the funded balance and the Split address it came from; the
+  distribute button now reads "Evaluating the waterfall in the TEE…"; owner view decrypts the
+  waterfall-computed payout via `sealedPayoutOf`, not just the cumulative token balance.
+- **Not done, needs the human:** re-recording the demo video for the waterfall pivot (the old video
+  script's numbers are superseded above) and the update video note. Everything else in this entry
+  is real, verified, and pushed.
+
 ## [SEED] Project decided
 - **What:** Scrip — confidential revenue-sharing / cap table wrapping unmodified 0xSplits. 0xSplits
   routes revenue + provable total; Nox seals ownership % and payouts; owners decrypt only their own;

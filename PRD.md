@@ -1,8 +1,11 @@
 # SCRIP — Product Requirements
 
-> **A cap table that pays out — with the ownership sealed.** Scrip wraps 0xSplits so a
-> company can share revenue among owners where every ownership percentage and every
-> payout is confidential, while the total distributed stays publicly provable.
+> **A confidential revenue waterfall on an unmodified 0xSplits rail.** Real deals aren't flat
+> splits — they're conditional waterfalls ("investor paid back first, then split the rest, better
+> terms if a milestone hits"). Scrip lets that settle on-chain with the DEAL TERMS and the PAYOUTS
+> sealed, the total publicly provable, computed confidentially by Nox. Everyone else seals a static
+> number the founder typed; Scrip has Nox COMPUTE the split from sealed rules — confidential
+> computation, not confidential storage.
 
 *Name: **Scrip** — the historical word for a certificate of ownership/shares. Short,
 evocative, unused in this space.*
@@ -20,124 +23,139 @@ it," or (B) "build/merge something truly innovative with Nox." Scrip does both i
 
 - **Wraps 0xSplits** (real, famous, live, open-source revenue-splitting protocol) — **unmodified**. → satisfies (A).
 - **The innovation:** makes a *public equity/revenue-split protocol confidential* — sealing the
-  ownership percentages and payouts that 0xSplits exposes — which nobody has done. → satisfies (B).
+  deal terms and payouts that 0xSplits exposes — which nobody has done. → satisfies (B).
 
 0xSplits describes itself as "an equity instrument by letting you define the percent of future
 value each recipient will earn." That's Scrip's use case in the wrapped protocol's own words.
 
 ---
 
-## 2. The use case (who, and the wound)
+## 2. The use case (who, and the wound) — CONDITIONAL deals
 
-**Who:** any entity that shares revenue/profit among owners on-chain — a tokenized fund, a
-revenue-sharing DAO, a tokenized real-world asset paying holders, a cap table paying dividends,
-a group-owned business splitting profit.
+**Who:** anyone whose revenue split is *conditional and confidential* — a startup with an
+investor revenue-share ("pay me back first, then we split"), a royalty deal with tiered rates,
+a profit waterfall with performance milestones, a fund with a hurdle/carry structure, a
+group-owned business with "first recoup costs, then split." These are the deals that REAL money
+runs on, and they are never flat.
 
-**The wound:** 0xSplits (and every on-chain revenue split) stores **ownership percentages and
-payouts publicly**. Anyone reading the chain sees "this address owns 40%, that one 25%," and
-sees exactly what each received. On-chain, your cap table and everyone's income are naked —
-*worse* than a traditional company, where shareholdings and dividends are private. That public
-cap table is the reason serious/institutional capital won't use on-chain revenue sharing.
+**The wound (two layers):**
+1. On-chain revenue splits expose **who owns how much and what they earn** (the base leak).
+2. Worse — they can only express **flat, static splits**. Real deals are **conditional
+   waterfalls** ("investor recouped first, then 70/30, better if we hit target"), and the DEAL
+   TERMS themselves are commercially sensitive — you don't want your next investor to see the
+   last one's terms. On-chain today you must either publish your deal structure or not do it
+   on-chain at all.
 
-**What Scrip changes:** the ownership allocation and the individual payouts are **sealed** via
-Nox; each owner decrypts only their own; the **total distributed stays public and provable**
-(so it's private, not unaccountable). The split rail (0xSplits) is untouched.
+**What Scrip changes:** the founder defines a **sealed waterfall** — ordered tiers with sealed
+recoup caps, ratios, and milestone gates. When revenue arrives via the unmodified 0xSplits rail,
+**Nox COMPUTES each owner's payout by evaluating the waterfall on the public total against the
+sealed terms.** The deal terms stay sealed, the individual payouts stay sealed (each owner
+decrypts only their own), the total stays publicly provable. The split protocol is never modified.
 
-**One-sentence use case:** *Share revenue among owners on-chain where each owner's stake and
-payout is private to them, the total is publicly provable, and the underlying split protocol is
-never modified.*
-
----
-
-## 3. Honest positioning
-
-Creativity-strong, institutional use case. It's not the builder's lived domain — the edge here
-is **execution + the "seal the split itself" wedge**, not lived authenticity. State the privacy
-boundary honestly (below) rather than overclaiming.
+**One-sentence use case:** *Run a real conditional revenue deal on-chain — investor recoupment,
+tiered splits, milestone bonuses — with the terms and payouts sealed and the total provable,
+computed confidentially by Nox on an unmodified 0xSplits rail.*
 
 ---
 
-## 4. What it is / isn't
+## 3. Why this wins on novelty (the differentiation)
+
+Most confidential-distribution projects in this space seal a **static number the founder typed**
+— enter a split, encrypt it, decrypt your share. That's Nox used as *encryption*.
+
+Scrip is the one where **the split is DECIDED by a rule Nox evaluates on sealed data** —
+confidential COMPUTATION, which is what Nox actually is (a TEE compute layer, not just an
+encryptor). The proof: the SAME public total distributes DIFFERENTLY based on a sealed milestone
+— something a static split literally cannot express.
+
+- Static-split projects: `seal(number)` → hide a typed split.
+- Scrip: `compute(waterfall, sealed_terms, public_total)` → the deal logic runs privately.
+
+This also aligns with 0xSplits (a *splitting-logic* protocol) — Scrip makes the splitting logic
+itself confidential and conditional, without touching 0xSplits.
+
+**Real proof, on Sepolia (`ScripWaterfall` at `0x137077d0c4ef8179b7e405a19ee4e62210e5ae43`):** two
+waterfalls with identical tier structure, funded with the same 2 USDC, differing only in one
+sealed milestone bit —
+- milestone NOT met (cap table 1): founder decrypts **1.119999 USDC**, investor decrypts
+  **0.879998 USDC** (`distribute` tx `0x899c5899338810c323337db9a9e2a13c455d2986de491b8cd71d2b6a4db297a5`).
+- milestone MET (cap table 2): founder decrypts **1.36 USDC**, investor decrypts **0.64 USDC**
+  (`distribute` tx `0xe0c77184ee5201aef964f5734518366ee291b9c891ae5bec1ad2fa3fa801cdae`).
+
+Same total, different real decrypted payout, from one sealed bit. See `log.md` for the full trace
+(every tx hash, every script) and `hardhat/contracts/ScripWaterfall.sol` for the contract.
+
+---
+
+## 4. Honest positioning
+
+Creativity-strong, institutional use case. The edge is the **confidential-computation wedge**
+(Nox computes a conditional waterfall on sealed terms) — genuinely differentiated from a static
+sealed-percentage split, and a real financial-infra problem (real deals are conditional and
+private). State the privacy boundary honestly (below) rather than overclaiming.
+
+---
+
+## 5. What it is / isn't
 
 - **Is:** a confidential **allocation + payout layer** wrapping an **unmodified 0xSplits**.
   0xSplits provides the public revenue-routing rail and the provable total; Nox seals the
-  ownership percentages and the per-recipient payouts; recipients receive confidential
-  ERC-7984 amounts.
-- **Is not:** a fork/modification of 0xSplits, an FHE build (banned), a re-skin of Confide
-  (this hackathon's rival — see §8), or a new splitter from scratch.
-
----
-
-## 5. Dividend core + equity vision (how they blend)
-
-- **Equity vision (the frame):** the sealed ownership percentages ARE a confidential cap table.
-  Because 0xSplits is literally an equity instrument, sealing its percentages = a private cap
-  table. This is the pitch and the North Star.
-- **Dividend core (what you build deepest):** recurring confidential distributions — revenue
-  flows into the Split, and each owner's share is paid out as a sealed amount, decryptable only
-  by them. This is the working, demoable heart.
-
-Build the dividend core solid; frame the equity/cap-table vision on top. They are one system:
-sealed ownership → private proportional payouts.
+  waterfall's recoup caps, ratios, and milestone gates, and computes each owner's payout;
+  recipients receive confidential ERC-7984 amounts.
+- **Is not:** a fork/modification of 0xSplits, an FHE build (banned), or a new splitter from
+  scratch. Not an async request/callback system either — see §7: every Nox compute call in
+  `distribute()` runs synchronously in the same transaction; the only async step is decrypting a
+  handle afterward.
 
 ---
 
 ## 6. Privacy boundary (state upfront — credibility)
 
-- **Sealed:** each recipient's ownership percentage, each recipient's payout amount, the
-  allocation computation.
+- **Sealed:** each tier's recoup cap, split ratio, and milestone gate; each recipient's payout
+  amount; the waterfall evaluation itself.
 - **Public:** that a Split/distribution exists, the recipient addresses (that someone is an
-  owner, not how much), and **the total revenue distributed** (provable — 0xSplits balances are
-  public; this is the trust anchor).
-- **Honest claim:** *"The ownership and the payouts are sealed. The total is provable. Each
+  owner, not how much), the tier count and order (the deal *structure*, not its terms), and
+  **the total revenue distributed** (provable — 0xSplits balances are public; this is the trust
+  anchor).
+- **Honest claim:** *"The deal terms and the payouts are sealed. The total is provable. Each
   owner sees only their own share."* Do NOT claim recipient identities are hidden — addresses
-  are visible; the *amounts and percentages* are what's confidential.
+  are visible; the *terms and amounts* are what's confidential.
 
 ---
 
 ## 7. The Nox primitives (all load-bearing)
 
-1. **Encrypted inputs/handles** — ownership percentages / allocations sealed via JS SDK.
-2. **Computation (TEE)** — each recipient's payout computed from their sealed share of the
-   public total, inside the enclave. `mul`/`add` on sealed values. (NOT FHE — Nox TEE.)
-3. **Selective disclosure (ACL)** — each owner decrypts own share+payout; an auditor/regulator
-   can be granted a scoped batch view; the public sees only the total.
+1. **Encrypted inputs/handles** — recoup caps, ratios, and milestone gates sealed via JS SDK
+   (`encryptInput(value, 'uint256' | 'bool', contractAddress)`).
+2. **Computation (TEE)** — `Nox.add/sub/mul/div/lt/select`, called directly and synchronously in
+   `distribute()`, evaluate the two-pass waterfall (abs-caps in order, then ratio splits of the
+   remainder) entirely on sealed handles. `select` implements both `min(remaining, cap)` and the
+   milestone gate without ever branching control flow on a sealed value. (NOT FHE — Nox TEE.)
+3. **Selective disclosure (ACL)** — each owner decrypts only their own computed payout
+   (`Nox.addViewer`); an auditor can be granted a scoped batch view (`grantAuditor`); the public
+   sees only the total.
 
 ---
 
-## 8. Borrow / avoid
-
-- **Borrow (Zama winners — different arena, fair):** Veilflow's distribution-engine pattern;
-  the ConfidentialBuybacks "private during, provable-total after" accountability mechanic;
-  GhostLend's no-leak-on-error rigor; Cifra's one-screenshot thesis; Paayee's real-product polish.
-- **Avoid (Confide — THIS hackathon's rival):** do not echo Confide's Safe-module +
-  auditor-disclosure architecture. Scrip's provable-total comes from the 0xSplits balance being
-  public + the buyback-pool pattern — framed as revenue-split total, NOT Confide's treasury model.
-  **Wedge vs Confide:** Confide seals *decided payouts to known people from a Safe*; Scrip seals
-  *ownership percentages and computes payouts from them, wrapping 0xSplits*. Different protocol,
-  different mechanic.
-
----
-
-## 9. Mapping to evaluation criteria
+## 8. Mapping to evaluation criteria
 
 | Weight | Criterion | How Scrip scores | Where points are won |
 |---|---|---|---|
-| ⭐⭐⭐ | Creativity | Sealing a public equity/split protocol — both doors at once; nobody did it | The "seal the split itself" wedge |
-| ⭐⭐⭐ | Works end-to-end, no mock data | Real 0xSplits + real ERC-7984 + real Sepolia | The confidential-payout path actually working |
-| ⭐⭐ | Deployed ETH Sepolia | Nox + 0xSplits + ERC-7984 all on Sepolia | — |
-| ⭐⭐ | feedback.md | Honest DX notes | Write from real build |
-| ⭐⭐ | ≤4-min video | The one-frame reveal (DEMO_SCRIPT) | Sealed percentages + provable total |
-| ⭐ | Leverages Nox | All three primitives load-bearing | Computation as centerpiece |
-| ⭐ | UX | Owner portal; async-aware | "computing in the TEE" as intentional |
+| ⭐⭐⭐ | Creativity | Nox COMPUTES a conditional split from sealed terms, not just sealing a typed number | The waterfall + milestone-flip proof |
+| ⭐⭐⭐ | Works end-to-end, no mock data | Real 0xSplits + real ERC-7984 + real Sepolia, both milestone scenarios decrypted | §3's real tx hashes and decrypted numbers |
+| ⭐⭐ | Deployed ETH Sepolia | Nox + 0xSplits + ERC-7984 all on Sepolia | `0x137077d0c4ef8179b7e405a19ee4e62210e5ae43` |
+| ⭐⭐ | feedback.md | Honest DX notes | Written from the real build |
+| ⭐⭐ | ≤4-min video | The milestone-flip money shot (DEMO_SCRIPT) | Same total, different sealed payout |
+| ⭐ | Leverages Nox | select/lt/add/sub/mul/div all load-bearing | Computation as centerpiece |
+| ⭐ | UX | Waterfall builder; async-aware decrypt | "Evaluating in the TEE" as intentional |
 
 ---
 
-## 10. Non-goals / cuts
+## 9. Non-goals / cuts
 
 - No modifying 0xSplits (wrap only).
 - No FHE anywhere (banned; Nox TEE only).
 - No hiding recipient addresses (out of scope — needs stealth addresses).
-- No LLM in the payout path — allocations computed deterministically in the TEE.
-- Built demo = confidential revenue split. Equity/cap-table is the framing, one README line
-  on generalization; not extra build surface.
+- No LLM in the payout path — the waterfall is evaluated deterministically in the TEE.
+- No live re-resolution of a milestone after cap-table creation — the founder attests the
+  milestone's (sealed) truth value at creation time; a given cap table's terms are then locked.

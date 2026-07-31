@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import type { WalletState } from "@/app/lib/useWallet";
-import { SCRIP_DISTRIBUTOR_ADDRESS, scripDistributorAbi } from "@/app/lib/contracts";
-import { fetchScripState, type ScripState } from "@/app/lib/events";
+import { SCRIP_WATERFALL_ADDRESS, scripWaterfallAbi } from "@/app/lib/contracts";
+import { fetchWaterfallState, type WaterfallState } from "@/app/lib/waterfallEvents";
 import { formatUsdc, formatDate, etherscanTx } from "@/app/lib/format";
 
 export function DistributionsPanel({ wallet }: { wallet: WalletState }) {
-  const [scripState, setScripState] = useState<ScripState | null>(null);
+  const [waterfallState, setWaterfallState] = useState<WaterfallState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,12 +17,12 @@ export function DistributionsPanel({ wallet }: { wallet: WalletState }) {
       setLoading(true);
       try {
         const count = await wallet.walletClient.readContract({
-          address: SCRIP_DISTRIBUTOR_ADDRESS,
-          abi: scripDistributorAbi,
+          address: SCRIP_WATERFALL_ADDRESS,
+          abi: scripWaterfallAbi,
           functionName: "capTableCount",
         });
-        const state = await fetchScripState(wallet.walletClient, count);
-        setScripState(state);
+        const state = await fetchWaterfallState(wallet.walletClient, count);
+        setWaterfallState(state);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
@@ -30,7 +30,6 @@ export function DistributionsPanel({ wallet }: { wallet: WalletState }) {
         setLoading(false);
       }
     };
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [wallet.walletClient, wallet.address]);
 
@@ -38,7 +37,7 @@ export function DistributionsPanel({ wallet }: { wallet: WalletState }) {
     return <p className="text-sm text-zinc-500">Connect a wallet to view distribution history.</p>;
   }
 
-  if (loading && !scripState) {
+  if (loading && !waterfallState) {
     return <p className="text-sm text-zinc-500">Loading distribution history from Sepolia…</p>;
   }
 
@@ -47,16 +46,16 @@ export function DistributionsPanel({ wallet }: { wallet: WalletState }) {
   }
 
   const myTableIds = new Set(
-    (scripState?.capTables ?? [])
+    (waterfallState?.capTables ?? [])
       .filter((t) => t.founder.toLowerCase() === wallet.address!.toLowerCase())
       .map((t) => t.id)
   );
-  const rows = (scripState?.distributions ?? []).filter((d) => myTableIds.has(d.id));
+  const rows = (waterfallState?.distributions ?? []).filter((d) => myTableIds.has(d.id));
 
   if (rows.length === 0) {
     return (
       <p className="text-sm text-zinc-500">
-        No distributions yet. Pool revenue and distribute from Overview or a cap table.
+        No distributions yet. Pool revenue and distribute from Overview or a waterfall.
       </p>
     );
   }
@@ -67,7 +66,7 @@ export function DistributionsPanel({ wallet }: { wallet: WalletState }) {
         <thead>
           <tr className="text-xs uppercase tracking-wide text-zinc-500">
             <th className="pb-2 pr-4 font-medium">#</th>
-            <th className="pb-2 pr-4 font-medium">Cap table</th>
+            <th className="pb-2 pr-4 font-medium">Waterfall</th>
             <th className="pb-2 pr-4 font-medium">Public total</th>
             <th className="pb-2 pr-4 font-medium">Timestamp</th>
             <th className="pb-2 pr-4 font-medium">Tx</th>

@@ -4,10 +4,14 @@
 > scores better) than praise. Update as you go.
 
 ## What we built
-Scrip: a confidential revenue-sharing / cap-table layer wrapping an unmodified 0xSplits Split.
-0xSplits routes revenue and provides a public provable total; Nox seals ownership percentages and
-pays each owner a confidential ERC-7984 amount computed in the TEE; owners decrypt only their own;
-auditors can be granted scoped disclosure. Deployed on ETH Sepolia.
+Scrip: a confidential conditional-revenue-waterfall layer wrapping an unmodified 0xSplits Split.
+0xSplits routes revenue and provides a public provable total; Nox seals each waterfall tier's
+recoup cap, split ratio, and milestone gate, and *computes* each owner's payout by evaluating the
+waterfall against the sealed terms in the TEE — not just decrypting a typed number. Owners decrypt
+only their own payout; auditors can be granted scoped disclosure. Deployed on ETH Sepolia. Real,
+on-chain proof that this is computation and not storage: two waterfalls, identical structure,
+funded with the same 2 USDC, differing only in one sealed milestone bit, decrypt to different
+payouts (1.119999/0.879998 USDC vs. 1.36/0.64 USDC) — see log.md for both tx hashes.
 
 ## Developer experience
 - **JS SDK (encryptInput / decrypt / ACL):** the two-call surface (`encryptInput` → handle+proof,
@@ -136,3 +140,13 @@ auditors can be granted scoped disclosure. Deployed on ETH Sepolia.
   auditor needs) and `allow` (compute-use, what a contract needs to operate on a handle further) is
   the right one — once you know it exists (see the friction point above about that not being obvious
   going in).
+- **`Nox.select(ebool, euint256, euint256)` plus the full comparison set (`lt/le/gt/ge/eq/ne`) makes
+  genuinely branchless confidential control flow straightforward:** built a two-pass conditional
+  waterfall (recoup caps, ratio splits, milestone gates) entirely as `select`/`lt` compositions —
+  `min(remaining, cap)` is `select(lt(remaining, cap), remaining, cap)`, and a milestone gate is
+  `select(milestone, take, zero)` — with no Solidity `if` ever touching a sealed value. Compiled and
+  worked first try against real Sepolia, and it's a stronger privacy pattern than we expected to get
+  for free: which tiers are "active" isn't observable from gas usage or execution path, only the
+  public total is. Worth calling out in the docs as the recommended way to express conditionals on
+  sealed data, since it wasn't obvious upfront that `select` was the intended building block for that
+  (as opposed to, say, an async oracle-style resolution).

@@ -87,3 +87,19 @@ setup. Prevents a broken/over-allocated cap table.
 
 A `splitId`/`capTableId` ties the 0xSplits Split, the sealed percentage set, the pooled total,
 and the payout batch together. Recipient addresses public; percentages and payouts sealed.
+
+---
+
+## 9. The waterfall upgrade (ScripWaterfall, supersedes the flat-percentage model above)
+
+`hardhat/contracts/ScripWaterfall.sol` (deployed at `0x137077d0c4ef8179b7e405a19ee4e62210e5ae43`)
+replaces the single sealed percentage per owner (§§1-8 above) with an ordered list of sealed
+**tiers** — each an absolute recoup cap, a split ratio, and a milestone gate, all sealed handles.
+`distribute()` evaluates the whole waterfall in one pass using only Nox's synchronous library
+calls (`add/sub/mul/div/lt/select`) — **no async request/callback**, contrary to an earlier design
+assumption in the repo-root `ScripWaterfall.sol` spec draft: every Nox compute call here resolves
+in the same transaction, exactly like §7's `payout = pct × total / 10_000`, just chained across
+more operations and gated by `select` instead of a single `mul`/`div` pair. The only async step
+anywhere in this system remains decrypting a handle afterward (§6, unchanged). A separate 0xSplits
+Split (`0x75720eBbBe8a92A21D420A4C6d240dC7299100b5`) routes to `ScripWaterfall`, keeping the
+original `ScripDistributor` deployment and demo (§§1-8) untouched.

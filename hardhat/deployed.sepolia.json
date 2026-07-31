@@ -8,5 +8,13 @@
   "owners": [
     "0x5bd8e236b39C4Fb48F4eA534584f2858c2B923E3",
     "0x5a6121DEB74bb5cb977990e180a2337F7cadd639"
-  ]
+  ],
+  "ScripWaterfall": "0x137077d0c4ef8179b7e405a19ee4e62210e5ae43",
+  "WaterfallSplit": "0x75720eBbBe8a92A21D420A4C6d240dC7299100b5",
+  "waterfallOwners": [
+    "0x5bd8e236b39C4Fb48F4eA534584f2858c2B923E3",
+    "0x5a6121DEB74bb5cb977990e180a2337F7cadd639"
+  ],
+  "waterfallCapTableNotHit": "1",
+  "waterfallCapTableHit": "2"
 }

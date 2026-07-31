@@ -11,9 +11,9 @@ import { DistributionsPanel } from "@/app/components/DistributionsPanel";
 import { OwnerPanel } from "@/app/components/OwnerPanel";
 import { AuditorPanel } from "@/app/components/AuditorPanel";
 import { Logo } from "@/app/components/Logo";
-import { SCRIP_DISTRIBUTOR_ADDRESS, CONFIDENTIAL_USDC_ADDRESS, scripDistributorAbi } from "@/app/lib/contracts";
-import { shortAddr, etherscanAddress } from "@/app/lib/format";
-import { fetchScripState } from "@/app/lib/events";
+import { CONFIDENTIAL_USDC_ADDRESS, SCRIP_WATERFALL_ADDRESS, USDC_ADDRESS, erc20Abi, scripWaterfallAbi } from "@/app/lib/contracts";
+import { shortAddr, etherscanAddress, formatUsdc } from "@/app/lib/format";
+import { fetchWaterfallState } from "@/app/lib/waterfallEvents";
 
 type Role = "owner" | "founder" | "auditor";
 type FounderView = "overview" | "capTables" | "distributions";
@@ -42,8 +42,8 @@ function Icon({ name }: { name: IconName }) {
 
 const FOUNDER_VIEW_META: Record<FounderView, { noun: string; description: string }> = {
   overview: { noun: ROLES.founder.noun, description: ROLES.founder.description },
-  capTables: { noun: "Cap tables", description: "Every sealed cap table you've created — owners, lock status, and distributions." },
-  distributions: { noun: "Distributions", description: "Full history of confidential payouts triggered from your cap tables." },
+  capTables: { noun: "Cap tables", description: "Every sealed waterfall you've created — owners, tier count and order, lock status. Terms stay sealed." },
+  distributions: { noun: "Distributions", description: "Full history of confidential waterfall payouts — each one evaluated from your sealed terms in the Nox TEE." },
 };
 
 export default function AppPage() {
@@ -56,6 +56,7 @@ export default function AppPage() {
   const [founderView, setFounderView] = useState<FounderView>("overview");
   const [ownerView, setOwnerView] = useState<OwnerView>("overview");
   const [splitAddr, setSplitAddr] = useState<string | null>(null);
+  const [fundedBalance, setFundedBalance] = useState<bigint | null>(null);
   const current = role ? ROLES[role] : null;
   const ownerMeta = ownerView === "balance" ? { noun: "Private balance", description: "Decrypt your balance and review public distribution activity for cap tables that include your wallet." } : ROLES.owner;
   const { noun: activeNoun, description: activeDescription } =
@@ -78,11 +79,11 @@ export default function AppPage() {
     (async () => {
       try {
         const count = await wallet.walletClient!.readContract({
-          address: SCRIP_DISTRIBUTOR_ADDRESS,
-          abi: scripDistributorAbi,
+          address: SCRIP_WATERFALL_ADDRESS,
+          abi: scripWaterfallAbi,
           functionName: "capTableCount",
         });
-        const state = await fetchScripState(wallet.walletClient!, count);
+        const state = await fetchWaterfallState(wallet.walletClient!, count);
         if (cancelled) return;
         const address = wallet.address!.toLowerCase();
         const detected: Role[] = [];
@@ -107,12 +108,25 @@ export default function AppPage() {
     if (!wallet.walletClient) return;
     wallet.walletClient
       .readContract({
-        address: SCRIP_DISTRIBUTOR_ADDRESS,
-        abi: scripDistributorAbi,
+        address: SCRIP_WATERFALL_ADDRESS,
+        abi: scripWaterfallAbi,
         functionName: "splitAddress",
       })
       .then((v) => setSplitAddr(v as string))
       .catch(() => {});
+  }, [wallet.walletClient]);
+  useEffect(() => {
+    if (!wallet.walletClient) return;
+    let cancelled = false;
+    const poll = () => {
+      wallet.walletClient!
+        .readContract({ address: USDC_ADDRESS, abi: erc20Abi, functionName: "balanceOf", args: [SCRIP_WATERFALL_ADDRESS] })
+        .then((v) => { if (!cancelled) setFundedBalance(v as bigint); })
+        .catch(() => {});
+    };
+    poll();
+    const interval = setInterval(poll, 15_000);
+    return () => { cancelled = true; clearInterval(interval); };
   }, [wallet.walletClient]);
 
   const switchRole = (next: Role) => { if (!availableRoles.includes(next)) return; setRole(next); setRoleMenu(false); setFounderView("overview"); setOwnerView("overview"); };
@@ -134,7 +148,7 @@ export default function AppPage() {
         </>}
         {role === "auditor" && <button><Icon name="audit"/>Audit requests</button>}
         <span className="sidebar-label sidebar-label-spaced">Network</span>
-        <a href={`https://sepolia.etherscan.io/address/${SCRIP_DISTRIBUTOR_ADDRESS}`} target="_blank" rel="noreferrer"><Icon name="shield"/>Contracts <ArrowUpRight size={13} /></a>
+        <a href={`https://sepolia.etherscan.io/address/${SCRIP_WATERFALL_ADDRESS}`} target="_blank" rel="noreferrer"><Icon name="shield"/>Contracts <ArrowUpRight size={13} /></a>
       </nav>
       <div className="sidebar-foot"><Link href="/"><Icon name="help"/>Product guide</Link><div className="network-chip"><i/>Sepolia <span>Live</span></div></div>
     </aside>
@@ -160,14 +174,14 @@ export default function AppPage() {
             <div className="onboarding-steps"><div className="onboarding-step done"><span>1</span><div><strong>Choose a workspace</strong><p>Switch roles at any time from the top bar.</p></div><b>Done</b></div><div className="onboarding-step current"><span>2</span><div><strong>Connect your wallet</strong><p>Scrip works with your existing Ethereum wallet.</p></div></div><div className="onboarding-step"><span>3</span><div><strong>Open your private view</strong><p>Your available tools and permissions load automatically.</p></div></div></div>
             <div className="onboarding-action"><div className="secure-mark"><Icon name="shield"/></div><span>Step 2 of 3</span><h2>Connect to continue</h2><p>Use a wallet on Ethereum Sepolia. Scrip never takes custody of your assets or keys.</p><ConnectButton wallet={wallet}/><small><i/>Encrypted inputs are prepared locally in your browser.</small></div>
           </div>
-        </section> : rolesLoading ? <section className="onboarding"><div className="onboarding-copy"><span className="dashboard-eyebrow">Verifying access</span><h1>Reading wallet roles from Sepolia…</h1><p>Founder, owner, and auditor access is derived from the distributor contract.</p></div></section>
+        </section> : rolesLoading ? <section className="onboarding"><div className="onboarding-copy"><span className="dashboard-eyebrow">Verifying access</span><h1>Reading wallet roles from Sepolia…</h1><p>Founder, owner, and auditor access is derived from the waterfall contract.</p></div></section>
         : !role ? <section className="onboarding"><div className="onboarding-copy"><span className="dashboard-eyebrow">No on-chain role</span><h1>This wallet has no Scrip access.</h1><p>{rolesError ? `Role detection failed: ${rolesError}` : "This address has not created a cap table, is not listed as an owner, and has not been granted auditor access."}</p></div></section>
         : <>
           <section className="dashboard-heading"><div><span className="dashboard-eyebrow">{current!.label} workspace</span><h1>{activeNoun}</h1><p>{activeDescription}</p></div><div className="heading-status"><i/>Connected to Sepolia</div></section>
           <section className="metric-grid">
-            <article><div><span>Privacy status</span><Icon name="shield"/></div><strong>Protected</strong><p>Amounts remain encrypted</p></article>
+            <article><div><span>Funded balance</span><Icon name="wallet"/></div><strong>{fundedBalance === null ? "…" : `${formatUsdc(fundedBalance)} USDC`}</strong><p>{splitAddr ? <>Funded via 0xSplits Split <a href={etherscanAddress(splitAddr)} target="_blank" rel="noreferrer">{shortAddr(splitAddr)} <ArrowUpRight size={11} style={{display:"inline"}}/></a></> : "Provable pooled total"}</p></article>
+            <article><div><span>Privacy status</span><Icon name="shield"/></div><strong>Protected</strong><p>Terms and payouts remain sealed</p></article>
             <article><div><span>Settlement asset</span><Icon name="wallet"/></div><strong>cUSDC</strong><p>Confidential ERC-7984</p></article>
-            <article><div><span>Public rail</span><Icon name="send"/></div><strong>0xSplits</strong><p>{splitAddr ? <a href={etherscanAddress(splitAddr)} target="_blank" rel="noreferrer">{shortAddr(splitAddr)} <ArrowUpRight size={11} style={{display:"inline"}}/></a> : "Provable distribution total"}</p></article>
           </section>
           <section className="role-workspace" id="role-content">
             <header><div><span className={`role-symbol ${role}`}>{role.slice(0,1).toUpperCase()}</span><div><h2>{activeNoun}</h2><p>{activeDescription}</p></div></div><span className="sealed-badge"><Icon name="shield"/>Confidential</span></header>
@@ -179,7 +193,7 @@ export default function AppPage() {
               {role === "auditor" && <AuditorPanel wallet={wallet}/>}
             </div>
           </section>
-          <section className="dashboard-info"><div><Icon name="shield"/><p><strong>Your privacy boundary</strong><span>Addresses and total distributions are public. Ownership percentages and individual payouts stay sealed.</span></p></div><a href={`https://sepolia.etherscan.io/address/${CONFIDENTIAL_USDC_ADDRESS}`} target="_blank" rel="noreferrer">View confidential token <ArrowUpRight size={13} /></a></section>
+          <section className="dashboard-info"><div><Icon name="shield"/><p><strong>Your privacy boundary</strong><span>Addresses and total distributions are public. Waterfall terms (caps, ratios, milestones) and individual payouts stay sealed.</span></p></div><a href={`https://sepolia.etherscan.io/address/${CONFIDENTIAL_USDC_ADDRESS}`} target="_blank" rel="noreferrer">View confidential token <ArrowUpRight size={13} /></a></section>
         </>}
       </main>
     </div>
