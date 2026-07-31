@@ -6,7 +6,8 @@ import {
   SCRIP_WATERFALL_ADDRESS,
   USDC_ADDRESS,
   scripWaterfallAbi,
-  erc20Abi,
+  splitAbi,
+  WATERFALL_SPLIT_PARAMS,
 } from "@/app/lib/contracts";
 import { fetchWaterfallState, type WaterfallState } from "@/app/lib/waterfallEvents";
 import { shortAddr, formatUsdc, formatDate, etherscanAddress, etherscanTx } from "@/app/lib/format";
@@ -40,6 +41,7 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
   const [activeTableId, setActiveTableId] = useState<bigint | null>(null);
   const [poolTx, setPoolTx] = useState<TxStatus>({ state: "idle" });
   const [distributeTx, setDistributeTx] = useState<TxStatus>({ state: "idle" });
+  const [routeTx, setRouteTx] = useState<TxStatus>({ state: "idle" });
 
   const [auditorAddr, setAuditorAddr] = useState("");
   const [auditorTableId, setAuditorTableId] = useState("1");
@@ -62,29 +64,40 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
         functionName: "capTableCount",
       });
 
-      const [state, split, balance] = await Promise.all([
+      const [state, split] = await Promise.all([
         fetchWaterfallState(wallet.walletClient, count),
         wallet.walletClient.readContract({
           address: SCRIP_WATERFALL_ADDRESS,
           abi: scripWaterfallAbi,
           functionName: "splitAddress",
         }),
-        wallet.walletClient.readContract({
-          address: USDC_ADDRESS,
-          abi: erc20Abi,
-          functionName: "balanceOf",
-          args: [SCRIP_WATERFALL_ADDRESS],
-        }),
       ]);
 
       setWaterfallState(state);
       setSplitAddr(split as string);
-      setPoolAmount(balance);
       setLoadError(null);
 
       const own = state.capTables.filter((t) => t.founder.toLowerCase() === wallet.address!.toLowerCase());
-      if (own.length > 0 && (activeTableId === null || !own.some((t) => t.id === activeTableId))) {
-        setActiveTableId(own[own.length - 1].id);
+      const resolvedId =
+        activeTableId !== null && own.some((t) => t.id === activeTableId)
+          ? activeTableId
+          : own.length > 0
+            ? own[own.length - 1].id
+            : null;
+      if (resolvedId !== activeTableId) setActiveTableId(resolvedId);
+
+      // Pooled-for-THIS-waterfall total (not the raw shared contract balance, which may also
+      // include other founders' not-yet-pooled deposits — see pooledUnspent on the contract).
+      if (resolvedId !== null) {
+        const pooled = await wallet.walletClient.readContract({
+          address: SCRIP_WATERFALL_ADDRESS,
+          abi: scripWaterfallAbi,
+          functionName: "pooledUnspent",
+          args: [resolvedId],
+        });
+        setPoolAmount(pooled as bigint);
+      } else {
+        setPoolAmount(null);
       }
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : String(err));
@@ -104,6 +117,26 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
     await navigator.clipboard.writeText(splitAddr);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+  };
+
+  const routeSplit = async () => {
+    if (!wallet.walletClient || !wallet.address || !splitAddr) return;
+    setRouteTx({ state: "pending" });
+    try {
+      const hash = await wallet.walletClient.writeContract({
+        address: splitAddr as `0x${string}`,
+        abi: splitAbi,
+        functionName: "distribute",
+        args: [WATERFALL_SPLIT_PARAMS, USDC_ADDRESS, wallet.address],
+        account: wallet.address,
+        chain: wallet.walletClient.chain,
+      });
+      await wallet.walletClient.waitForTransactionReceipt({ hash });
+      setRouteTx({ state: "done", hash });
+      await refresh();
+    } catch (err) {
+      setRouteTx({ state: "error", message: err instanceof Error ? err.message : String(err) });
+    }
   };
 
   const pool = async () => {
@@ -299,31 +332,45 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
           Fund via 0xSplits
         </h3>
         <p className="mb-3 text-sm text-zinc-500">
-          Send test USDC to the Split below; 0xSplits routes it here unmodified. Then hit{" "}
-          <span className="font-medium text-zinc-400">Pool revenue</span> to make it the public total.
+          Three steps, in order — sending USDC to the Split alone does nothing yet; the Split has
+          to actually route it here before it becomes your waterfall&apos;s pooled total.
         </p>
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-white/10 bg-white/[.03] px-4 py-3">
-          <span className="min-w-0 flex-1 truncate font-mono text-xs">
-            {splitAddr ?? "…"}
-          </span>
-          <button
-            onClick={copySplit}
-            disabled={!splitAddr}
-            className="rounded-full border border-white/15 px-3 py-1 text-xs font-medium hover:bg-white/[.06] disabled:opacity-50"
-          >
-            {copied ? "Copied" : "Copy"}
-          </button>
-          {splitAddr && (
-            <a
-              href={etherscanAddress(splitAddr)}
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-full border border-white/15 px-3 py-1 text-xs font-medium hover:bg-white/[.06]"
+        <ol className="flex flex-col gap-3 text-sm text-zinc-400">
+          <li>
+            <span className="font-medium text-zinc-300">1. Send test USDC to this Split address</span>
+            <div className="mt-1 flex flex-wrap items-center gap-2 rounded-lg border border-white/10 bg-white/[.03] px-4 py-3">
+              <span className="min-w-0 flex-1 truncate font-mono text-xs">{splitAddr ?? "…"}</span>
+              <button
+                onClick={copySplit}
+                disabled={!splitAddr}
+                className="rounded-full border border-white/15 px-3 py-1 text-xs font-medium hover:bg-white/[.06] disabled:opacity-50"
+              >
+                {copied ? "Copied" : "Copy"}
+              </button>
+              {splitAddr && (
+                <a href={etherscanAddress(splitAddr)} target="_blank" rel="noreferrer" className="rounded-full border border-white/15 px-3 py-1 text-xs font-medium hover:bg-white/[.06]">
+                  Etherscan ↗
+                </a>
+              )}
+            </div>
+          </li>
+          <li>
+            <span className="font-medium text-zinc-300">2. Route it — call the Split&apos;s own (unmodified) distribute()</span>
+            <p className="mt-1 text-xs text-zinc-500">This is the step that actually forwards what you sent from the Split into ScripWaterfall. Nothing arrives here until this runs.</p>
+            <button
+              onClick={routeSplit}
+              disabled={routeTx.state === "pending" || !splitAddr}
+              className="mt-2 rounded-full border border-white/15 px-4 py-1.5 text-sm font-medium hover:bg-white/[.06] disabled:opacity-50"
             >
-              Etherscan ↗
-            </a>
-          )}
-        </div>
+              {routeTx.state === "pending" ? "Routing…" : "Route via 0xSplits"}
+            </button>
+            {routeTx.state === "error" && <p className="mt-1 text-xs text-red-400">{routeTx.message}</p>}
+          </li>
+          <li>
+            <span className="font-medium text-zinc-300">3. Pool revenue</span> — makes what actually
+            arrived your waterfall&apos;s public, provable total (see below).
+          </li>
+        </ol>
       </section>
 
       <section>
@@ -332,8 +379,9 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
           {activeTableId !== null && <span className="normal-case text-zinc-400"> (waterfall #{activeTableId.toString()})</span>}
         </h3>
         <p className="mb-3 text-sm text-zinc-500">
-          Funded balance in ScripWaterfall:{" "}
+          Pooled for this waterfall:{" "}
           <span className="font-mono">{poolAmount === null ? "…" : formatUsdc(poolAmount)}</span> USDC
+          {" "}(0 until you&apos;ve completed steps 1–3 above)
         </p>
         <div className="flex flex-wrap gap-3">
           <button

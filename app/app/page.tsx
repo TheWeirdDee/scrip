@@ -188,7 +188,7 @@ export default function AppPage() {
         : <>
           <section className="dashboard-heading"><div><span className="dashboard-eyebrow">{current!.label} workspace</span><h1>{activeNoun}</h1><p>{activeDescription}</p></div><div className="heading-status"><i/>Connected to Sepolia</div></section>
           <section className="metric-grid">
-            <article><div><span>Funded balance</span><Icon name="wallet"/></div><strong>{fundedBalance === null ? "…" : `${formatUsdc(fundedBalance)} USDC`}</strong><p>{splitAddr ? <>Funded via 0xSplits Split <a href={etherscanAddress(splitAddr)} target="_blank" rel="noreferrer">{shortAddr(splitAddr)} <ArrowUpRight size={11} style={{display:"inline"}}/></a></> : "Provable pooled total"}</p></article>
+            <article><div><span>Protocol pooled balance</span><Icon name="wallet"/></div><strong>{fundedBalance === null ? "…" : `${formatUsdc(fundedBalance)} USDC`}</strong><p>{splitAddr ? <>Across every waterfall, via 0xSplits Split <a href={etherscanAddress(splitAddr)} target="_blank" rel="noreferrer">{shortAddr(splitAddr)} <ArrowUpRight size={11} style={{display:"inline"}}/></a></> : "Provable pooled total"}</p></article>
             <article><div><span>Privacy status</span><Icon name="shield"/></div><strong>Protected</strong><p>Terms and payouts remain sealed</p></article>
             <article><div><span>Settlement asset</span><Icon name="wallet"/></div><strong>cUSDC</strong><p>Confidential ERC-7984</p></article>
           </section>

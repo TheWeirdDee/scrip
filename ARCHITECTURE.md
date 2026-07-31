@@ -92,7 +92,8 @@ and the payout batch together. Recipient addresses public; percentages and payou
 
 ## 9. The waterfall upgrade (ScripWaterfall, supersedes the flat-percentage model above)
 
-`hardhat/contracts/ScripWaterfall.sol` (deployed at `0x137077d0c4ef8179b7e405a19ee4e62210e5ae43`)
+`hardhat/contracts/ScripWaterfall.sol` (deployed at `0xb9c64beb326ba50acc07bcb4bf1ce0b7f25c3478`,
+v2 — see §10 below; supersedes the v1 deploy at `0x137077d0c4ef8179b7e405a19ee4e62210e5ae43`)
 replaces the single sealed percentage per owner (§§1-8 above) with an ordered list of sealed
 **tiers** — each an absolute recoup cap, a split ratio, and a milestone gate, all sealed handles.
 `distribute()` evaluates the whole waterfall in one pass using only Nox's synchronous library
@@ -101,5 +102,22 @@ assumption in the repo-root `ScripWaterfall.sol` spec draft: every Nox compute c
 in the same transaction, exactly like §7's `payout = pct × total / 10_000`, just chained across
 more operations and gated by `select` instead of a single `mul`/`div` pair. The only async step
 anywhere in this system remains decrypting a handle afterward (§6, unchanged). A separate 0xSplits
-Split (`0x75720eBbBe8a92A21D420A4C6d240dC7299100b5`) routes to `ScripWaterfall`, keeping the
+Split (`0xB97F83C034A97893f7F8BDD78b70C035b3C501Ee`) routes to `ScripWaterfall`, keeping the
 original `ScripDistributor` deployment and demo (§§1-8) untouched.
+
+---
+
+## 10. v2 — per-cap-table fund ledger (fund-safety fix)
+
+Any wallet can create a cap table, and every cap table on this deployment shares one contract's
+USDC balance — 0xSplits sends a plain, untagged ERC-20 transfer, so there's no on-chain way to know
+which deal an incoming transfer was meant for. v1's `poolRevenue(id)` just read
+`usdc.balanceOf(address(this))` directly: with concurrent founders, one cap table's `poolRevenue`/
+`distribute` could pool and spend USDC that actually arrived for a different founder's cap table.
+v2 adds `pooledUnspent[id]` and `totalPooledUnspent`: `poolRevenue(id)` attributes only the
+newly-arrived, not-yet-claimed delta (`balance - totalPooledUnspent`) to the caller's id, and
+`distribute(id, publicTotal)` requires `publicTotal <= pooledUnspent[id]`. Residual, disclosed
+limit: if two founders both deposit before either calls `poolRevenue`, whoever calls it first
+claims the combined new delta for their own id — closing that fully requires a dedicated Split per
+waterfall, out of scope here. See the contract's own comment on `pooledUnspent` and `log.md`'s
+"[WATERFALL v2]" entry for the real transactions that found and fixed this.

@@ -29,9 +29,9 @@ number someone typed. Each owner decrypts only their own payout; an auditor can 
 scoped view; the public sees only the total.
 
 **The proof this is computation, not storage:** two waterfalls, identical structure, funded with
-the same 2 USDC — the only difference is one sealed milestone bit. Real, decrypted, on Sepolia:
-milestone not met → founder 1.119999 USDC / investor 0.879998 USDC; milestone met → founder 1.36
-USDC / investor 0.64 USDC. Same total, different payout, from a rule Nox evaluated privately. A
+the same 1 USDC — the only difference is one sealed milestone bit. Real, decrypted, on Sepolia:
+milestone not met → founder 0.629999 USDC / investor 0.369998 USDC; milestone met → founder 0.765
+USDC / investor 0.235 USDC. Same total, different payout, from a rule Nox evaluated privately. A
 static sealed percentage cannot express this.
 
 ## Why it's a real integration (both brief doors)
@@ -73,14 +73,24 @@ static sealed percentage cannot express this.
 
 | Contract | Address |
 |---|---|
-| `ScripWaterfall` | [`0x137077d0c4ef8179b7e405a19ee4e62210e5ae43`](https://sepolia.etherscan.io/address/0x137077d0c4ef8179b7e405a19ee4e62210e5ae43) |
+| `ScripWaterfall` (v2 — per-cap-table pooled-funds ledger) | [`0xb9c64beb326ba50acc07bcb4bf1ce0b7f25c3478`](https://sepolia.etherscan.io/address/0xb9c64beb326ba50acc07bcb4bf1ce0b7f25c3478) |
 | `ConfidentialUSDC` (ERC-7984 wrapper, shared with the original demo) | [`0x081000dc72d13e472671f9a641c261cbb1a39101`](https://sepolia.etherscan.io/address/0x081000dc72d13e472671f9a641c261cbb1a39101) |
-| 0xSplits Split (unmodified, routes to ScripWaterfall) | [`0x75720eBbBe8a92A21D420A4C6d240dC7299100b5`](https://sepolia.etherscan.io/address/0x75720eBbBe8a92A21D420A4C6d240dC7299100b5) |
+| 0xSplits Split (unmodified, routes to ScripWaterfall v2) | [`0xB97F83C034A97893f7F8BDD78b70C035b3C501Ee`](https://sepolia.etherscan.io/address/0xB97F83C034A97893f7F8BDD78b70C035b3C501Ee) |
 | USDC (Circle, Sepolia) | [`0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`](https://sepolia.etherscan.io/address/0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238) |
+| `ScripWaterfall` v1 (superseded — shared-pool accounting, kept live as history) | [`0x137077d0c4ef8179b7e405a19ee4e62210e5ae43`](https://sepolia.etherscan.io/address/0x137077d0c4ef8179b7e405a19ee4e62210e5ae43) |
 | `ScripDistributor` (earlier static-split demo, kept live, superseded by ScripWaterfall) | [`0x3b323cee5cc1dc3fead35c74b45062aa43f45ede`](https://sepolia.etherscan.io/address/0x3b323cee5cc1dc3fead35c74b45062aa43f45ede) |
 
-Cap tables #1 and #2 on `ScripWaterfall` are the live milestone-flip demo (see above). `log.md` has
-every real transaction hash from building this, phase by phase.
+Cap tables #1 and #2 on `ScripWaterfall` v2 are the live milestone-flip demo (see above). `log.md`
+has every real transaction hash from building this, phase by phase, including the v1→v2 fix.
+
+**Note on shared funds:** any wallet can create a waterfall, and every waterfall on this deployment
+shares one contract's USDC balance. `poolRevenue`/`distribute` only ever attribute and spend the
+delta that hasn't already been claimed by another cap table (see `pooledUnspent` in
+`hardhat/contracts/ScripWaterfall.sol`), so one founder's `poolRevenue` call can no longer pool or
+spend funds already attributed to a different founder's cap table. The one residual limit: if two
+founders both deposit before either calls `poolRevenue`, whoever calls it first claims that new
+delta for their own cap table — fund your own waterfall and call **Pool revenue** promptly after
+**Route via 0xSplits**, same as the app's own flow.
 
 ## Prerequisites
 
@@ -113,8 +123,11 @@ committed in `app/lib/contracts.ts`, pointing at the live Sepolia deployment abo
    "recoups first $X" or "then splits N%" rule, and an optional milestone gate. Every dollar
    amount, percentage, and milestone flag is encrypted in your browser before **Create & lock**
    submits it on-chain.
-3. **Fund it**: send Sepolia USDC to the 0xSplits Split address shown on the founder Overview (the
-   unmodified 0xSplits rail), then click **Pool revenue** to make the total public and provable.
+3. **Fund it, three steps** (all on the founder Overview): send Sepolia USDC to the 0xSplits Split
+   address shown, then click **Route via 0xSplits** — this calls the Split's own unmodified
+   `distribute()` and is what actually forwards your funds from the Split into ScripWaterfall
+   (sending USDC to the Split alone does nothing until this runs), then click **Pool revenue** to
+   make what arrived your waterfall's public, provable total.
 4. **Distribute**: click **Distribute** — this evaluates the sealed waterfall against the pooled
    total inside the Nox TEE and settles each owner's confidential payout in one transaction.
 5. **Decrypt as an owner**: switch to (or connect as) an owner wallet listed on that waterfall —
@@ -138,8 +151,8 @@ npx hardhat run scripts/deploy-token.ts --network sepolia       # ConfidentialUS
 npx hardhat run scripts/deploy-waterfall.ts --network sepolia   # ScripWaterfall
 npx tsx scripts/create-waterfall-split.ts        # real 0xSplits v2 Push Split, 100% -> ScripWaterfall
 npx tsx scripts/setup-waterfall-cap-tables.ts    # two sealed waterfalls, same terms, opposite milestone bit
-npx tsx scripts/run-waterfall-scenario.ts 1 2    # fund + distribute cap table 1 (milestone not met)
-npx tsx scripts/run-waterfall-scenario.ts 2 2    # fund + distribute cap table 2 (milestone met)
+npx tsx scripts/run-waterfall-scenario.ts 1 1    # fund + distribute cap table 1 (milestone not met) — amount in whole USDC
+npx tsx scripts/run-waterfall-scenario.ts 2 1    # fund + distribute cap table 2 (milestone met)
 npx tsx scripts/decrypt-waterfall-payouts.ts     # each owner decrypts only their own, both scenarios
 ```
 Needs a Sepolia RPC URL + a funded private key in `hardhat/.env` (see `hardhat/.env.example`).

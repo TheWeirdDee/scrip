@@ -10,10 +10,14 @@ export const DEMO_CAP_TABLE_ID = 1n;
 export const DEMO_FOUNDER_ADDRESS = "0x5bd8e236b39C4Fb48F4eA534584f2858c2B923E3" as const;
 
 // ScripWaterfall — the confidential conditional distribution engine (see hardhat/deployed.sepolia.json).
-// Cap table #1 = the "milestone NOT hit" demo scenario, #2 = "milestone HIT" — same 2 USDC total,
+// v2: adds a per-cap-table pooled-funds ledger so concurrent founders sharing this one contract
+// can't pool/distribute funds attributed to a different founder's cap table (see the contract's
+// pooledUnspent comment). Supersedes 0x137077d0c4ef8179b7e405a19ee4e62210e5ae43 (v1, fund-safety
+// issue, kept live on Sepolia as history but no longer used by the app).
+// Cap table #1 = the "milestone NOT hit" demo scenario, #2 = "milestone HIT" — same 1 USDC total,
 // different sealed-milestone payout (the money-shot proof; see DEMO_SCRIPT.md).
-export const SCRIP_WATERFALL_ADDRESS = "0x137077d0c4ef8179b7e405a19ee4e62210e5ae43" as const;
-export const WATERFALL_SPLIT_ADDRESS = "0x75720eBbBe8a92A21D420A4C6d240dC7299100b5" as const;
+export const SCRIP_WATERFALL_ADDRESS = "0xb9c64beb326ba50acc07bcb4bf1ce0b7f25c3478" as const;
+export const WATERFALL_SPLIT_ADDRESS = "0xB97F83C034A97893f7F8BDD78b70C035b3C501Ee" as const;
 export const WATERFALL_DEMO_NOT_HIT_ID = 1n;
 export const WATERFALL_DEMO_HIT_ID = 2n;
 
@@ -47,6 +51,20 @@ export const confidentialUsdcAbi = parseAbi([
   "function confidentialBalanceOf(address account) view returns (bytes32)",
 ]);
 
+// The unmodified 0xSplits Push Split that routes to ScripWaterfall. Sending it USDC only credits
+// the Split's own balance — someone still has to call the Split's own (unmodified) distribute() to
+// actually push those funds on to ScripWaterfall. Fixed params match how every Scrip Split is
+// created (single recipient = ScripWaterfall, 100% allocation, no incentive fee).
+export const splitAbi = parseAbi([
+  "function distribute((address[] recipients, uint256[] allocations, uint256 totalAllocation, uint16 distributionIncentive) _split, address _token, address _distributor)",
+]);
+export const WATERFALL_SPLIT_PARAMS = {
+  recipients: [SCRIP_WATERFALL_ADDRESS],
+  allocations: [1n],
+  totalAllocation: 1n,
+  distributionIncentive: 0,
+} as const;
+
 // TierInput mirrors ScripWaterfall.sol's struct exactly (externalEuint256/externalEbool are
 // bytes32 at the ABI level). beneficiary + tier order are public; absCap/ratioBps/milestone are
 // sealed handles encrypted client-side before submission.
@@ -57,6 +75,7 @@ export const scripWaterfallAbi = parseAbi([
   "function tierBeneficiary(uint256 id, uint256 index) view returns (uint256)",
   "function isLocked(uint256 id) view returns (bool)",
   "function sealedPayoutOf(uint256 id, uint256 ownerIndex) view returns (bytes32)",
+  "function pooledUnspent(uint256 id) view returns (uint256)",
   "function splitAddress() view returns (address)",
   "function createCapTable(address[] owners, (uint256 beneficiary, bytes32 absCap, bytes absCapProof, bytes32 ratioBps, bytes ratioBpsProof, bytes32 milestone, bytes milestoneProof)[] tiers) returns (uint256 id)",
   "function lockWaterfall(uint256 id)",

@@ -6,7 +6,8 @@ pragma solidity ^0.8.27;
  *
  * ORIGINAL ANNOTATED SPEC. The real, compiling, deployed implementation lives at
  * hardhat/contracts/ScripWaterfall.sol — that file is what's actually built and deployed to
- * Sepolia (0x137077d0c4ef8179b7e405a19ee4e62210e5ae43). This file is kept as the annotated
+ * Sepolia (0xb9c64beb326ba50acc07bcb4bf1ce0b7f25c3478, v2 — adds a per-cap-table pooled-funds
+ * ledger; see ARCHITECTURE.md §10). This file is kept as the annotated
  * historical spec/reference, same convention as ../ScripDistributor.sol.
  *
  * CORRECTION vs. the draft below: Nox compute is NOT an async request/callback pair. Every

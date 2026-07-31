@@ -74,16 +74,17 @@ encryptor). The proof: the SAME public total distributes DIFFERENTLY based on a 
 This also aligns with 0xSplits (a *splitting-logic* protocol) — Scrip makes the splitting logic
 itself confidential and conditional, without touching 0xSplits.
 
-**Real proof, on Sepolia (`ScripWaterfall` at `0x137077d0c4ef8179b7e405a19ee4e62210e5ae43`):** two
-waterfalls with identical tier structure, funded with the same 2 USDC, differing only in one
+**Real proof, on Sepolia (`ScripWaterfall` v2 at `0xb9c64beb326ba50acc07bcb4bf1ce0b7f25c3478`):** two
+waterfalls with identical tier structure, funded with the same 1 USDC, differing only in one
 sealed milestone bit —
-- milestone NOT met (cap table 1): founder decrypts **1.119999 USDC**, investor decrypts
-  **0.879998 USDC** (`distribute` tx `0x899c5899338810c323337db9a9e2a13c455d2986de491b8cd71d2b6a4db297a5`).
-- milestone MET (cap table 2): founder decrypts **1.36 USDC**, investor decrypts **0.64 USDC**
-  (`distribute` tx `0xe0c77184ee5201aef964f5734518366ee291b9c891ae5bec1ad2fa3fa801cdae`).
+- milestone NOT met (cap table 1): founder decrypts **0.629999 USDC**, investor decrypts
+  **0.369998 USDC** (`distribute` tx `0x24e593cf2f44725d749613a734992f51f765b1635d3f8bf20a7af368d3678a2b`).
+- milestone MET (cap table 2): founder decrypts **0.765 USDC**, investor decrypts **0.235 USDC**
+  (`distribute` tx `0x25aa91d8ff6b69abd5e513aa1944fd082ee3a11896eea176f5809bd17eec2988`).
 
 Same total, different real decrypted payout, from one sealed bit. See `log.md` for the full trace
-(every tx hash, every script) and `hardhat/contracts/ScripWaterfall.sol` for the contract.
+(every tx hash, every script, including the v1→v2 fund-safety fix) and
+`hardhat/contracts/ScripWaterfall.sol` for the contract.
 
 ---
 
@@ -143,7 +144,7 @@ private). State the privacy boundary honestly (below) rather than overclaiming.
 |---|---|---|---|
 | ⭐⭐⭐ | Creativity | Nox COMPUTES a conditional split from sealed terms, not just sealing a typed number | The waterfall + milestone-flip proof |
 | ⭐⭐⭐ | Works end-to-end, no mock data | Real 0xSplits + real ERC-7984 + real Sepolia, both milestone scenarios decrypted | §3's real tx hashes and decrypted numbers |
-| ⭐⭐ | Deployed ETH Sepolia | Nox + 0xSplits + ERC-7984 all on Sepolia | `0x137077d0c4ef8179b7e405a19ee4e62210e5ae43` |
+| ⭐⭐ | Deployed ETH Sepolia | Nox + 0xSplits + ERC-7984 all on Sepolia | `0xb9c64beb326ba50acc07bcb4bf1ce0b7f25c3478` |
 | ⭐⭐ | feedback.md | Honest DX notes | Written from the real build |
 | ⭐⭐ | ≤4-min video | The milestone-flip money shot (DEMO_SCRIPT) | Same total, different sealed payout |
 | ⭐ | Leverages Nox | select/lt/add/sub/mul/div all load-bearing | Computation as centerpiece |

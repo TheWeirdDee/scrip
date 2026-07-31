@@ -20,13 +20,14 @@ itself, privately."
   sealed. Nobody sees them, not even on Etherscan."
 
 ## 1:15-2:15 — THE MONEY SHOT: same total, different payout (real, on Sepolia)
-- Send 2 USDC of revenue through the UNMODIFIED 0xSplits Split → it routes to ScripWaterfall → Pool
-  revenue. Total (2 USDC) is public and provable.
+- Send 1 USDC of revenue to the UNMODIFIED 0xSplits Split → click **Route via 0xSplits** (the
+  Split's own distribute() forwarding it to ScripWaterfall) → **Pool revenue**. Total (1 USDC) is
+  public and provable.
 - Distribute. Show the "Evaluating the waterfall in the TEE…" state on the button — "the split is
   being COMPUTED confidentially, not just decrypted."
-- Cap table #1 (milestone NOT met): founder decrypts 1.119999 USDC, investor decrypts 0.879998 USDC.
-- Cap table #2 (milestone MET), same tiers, same 2 USDC total: founder decrypts 1.36 USDC, investor
-  decrypts 0.64 USDC.
+- Cap table #1 (milestone NOT met): founder decrypts 0.629999 USDC, investor decrypts 0.369998 USDC.
+- Cap table #2 (milestone MET), same tiers, same 1 USDC total: founder decrypts 0.765 USDC, investor
+  decrypts 0.235 USDC.
 - "Same total. Different payouts. Because a SEALED condition changed the math — computed privately by
   Nox. A static sealed split literally cannot express this. That's the difference between hiding a
   number and computing on hidden ones." (Real tx hashes for both distributions are in log.md.)

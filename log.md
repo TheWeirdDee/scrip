@@ -4,6 +4,58 @@ Append-only. Newest on top. One entry per session: found / built / rule earned.
 
 ---
 
+## [WATERFALL v2 — fund-safety fix + missing funding step, found from real use]
+- **Found by the user actually using the deployed app as a fresh wallet** (not by review): the
+  founder Overview showed "Funded balance: 0.0 USDC" after they sent 20 USDC to the 0xSplits Split
+  — because sending USDC to a Split only credits the Split's own balance. Someone still has to call
+  the Split's own (unmodified) `distribute()` to push those funds on to ScripWaterfall, and the
+  frontend never exposed that step — only "Pool revenue" (which just reads whatever's already
+  arrived) existed. Added a "Route via 0xSplits" button calling the Split's real `distribute()`
+  with the fixed params every Scrip Split is created with, making the flow three explicit steps:
+  send → route via Split → pool revenue.
+- **While investigating, found a real fund-safety bug**, not just a UX gap: `poolRevenue(id)` read
+  `usdc.balanceOf(address(this))` directly — the RAW shared contract balance, not anything scoped
+  to `id`. Since v1's onboarding fix (an earlier entry) opened cap-table creation to any wallet,
+  multiple founders now genuinely share one ScripWaterfall contract's USDC balance, and 0xSplits
+  sends a plain, untagged ERC-20 transfer (no way to know which deal a transfer was meant for). A
+  founder calling `poolRevenue`/`distribute` on their own cap table could pool and spend USDC that
+  actually arrived for a *different* founder's cap table. This wasn't hit yet in practice (the demo
+  scripts always ran sequentially, draining to ~0 between rounds) but was a live landmine the moment
+  two real founders operated concurrently.
+- **Fix:** added `pooledUnspent[id]` + `totalPooledUnspent` ledger. `poolRevenue(id)` now attributes
+  only the *newly arrived, not-yet-claimed* delta (`balance - totalPooledUnspent`) to the caller's
+  id; `distribute(id, publicTotal)` now requires `publicTotal <= pooledUnspent[id]` and decrements
+  the ledger. Residual, disclosed limitation: if two founders both deposit before either calls
+  `poolRevenue`, whoever calls it first claims the combined new delta for their own id — there is no
+  on-chain way to tag an incoming Split transfer to a specific deal without giving each waterfall
+  its own dedicated Split, which was out of scope for this pass. Documented in the contract and in
+  docs/README.
+- **Redeployed** (bytecode is immutable, so the fix required a new address):
+  `ScripWaterfall` v2 at `0xb9c64beb326ba50acc07bcb4bf1ce0b7f25c3478`, new Split at
+  `0xB97F83C034A97893f7F8BDD78b70C035b3C501Ee` routing 100% to it (tx
+  `0x50c1156ed4f5073219d13165bfa8b196591aa63c44e2f92313d42788d40d17e2`). v1
+  (`0x137077d0c4ef8179b7e405a19ee4e62210e5ae43`) stays live on Sepolia as history but the app no
+  longer points at it.
+- **Re-ran the full milestone proof on v2, real, rescaled to fit remaining test USDC** (1 USDC/round
+  instead of 2 — same tier structure, same bps, proportionally smaller): cap table 1 (milestone NOT
+  met) distribute tx `0x24e593cf2f44725d749613a734992f51f765b1635d3f8bf20a7af368d3678a2b`, decrypted
+  founder 0.629999 USDC / investor 0.369998 USDC. Cap table 2 (milestone MET) distribute tx
+  `0x25aa91d8ff6b69abd5e513aa1944fd082ee3a11896eea176f5809bd17eec2988`, decrypted founder 0.765 USDC
+  / investor 0.235 USDC. Same total, different real decrypted payout, confirmed again on the
+  hardened contract.
+- **Also found while doing this:** the Nox testnet gateway (`gateway-testnets.noxprotocol.dev`) was
+  intermittently unreachable mid-session (`UND_ERR_CONNECT_TIMEOUT` on the encrypt-input call) —
+  confirmed via `dns.lookup` + `curl` that DNS/basic connectivity were fine, so this was the gateway
+  itself being flaky, not a client-side networking bug. Retrying after a short wait (and, once,
+  retrying just the failed cap table rather than the whole script) got through cleanly. Worth noting
+  for anyone else's demo-day nerves: build in a retry, don't assume a single timeout means the
+  integration is broken.
+- **Also fixed while here:** native `<select>` dropdowns (owner picker, tier type, milestone gate)
+  were rendering with the browser's default light popup and inheriting the page's light `--ink`
+  text color, making them unreadable — first real dark-mode contrast bug reported from actual use of
+  the tier builder. Fixed with explicit dark `background-color`/`color` on `select` and its
+  `option`s plus `color-scheme: dark`.
+
 ## [WATERFALL SHIPPED — real contract, real deploy, real on-chain proof]
 - **Built hardhat/contracts/ScripWaterfall.sol for real** (not the async-callback design in the
   root spec draft — see correction below), modeled directly on the proven ScripDistributor.sol

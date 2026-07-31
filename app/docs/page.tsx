@@ -98,12 +98,12 @@ export default function DocsPage() {
               </p>
               <p>
                 <strong>The proof this is real computation:</strong> two waterfalls on Sepolia,
-                identical tiers, funded with the same 2 USDC — the only difference is one sealed
+                identical tiers, funded with the same 1 USDC — the only difference is one sealed
                 milestone bit.
               </p>
               <div className="docs-proof">
-                <div><span className="card-tag">Milestone NOT met</span><b>founder 1.119999 USDC</b><span>investor 0.879998 USDC</span></div>
-                <div><span className="card-tag">Milestone MET</span><b>founder 1.36 USDC</b><span>investor 0.64 USDC</span></div>
+                <div><span className="card-tag">Milestone NOT met</span><b>founder 0.629999 USDC</b><span>investor 0.369998 USDC</span></div>
+                <div><span className="card-tag">Milestone MET</span><b>founder 0.765 USDC</b><span>investor 0.235 USDC</span></div>
               </div>
               <p>
                 Same total, different real decrypted payout — driven by a rule Nox evaluated
@@ -120,7 +120,9 @@ export default function DocsPage() {
               <ul>
                 <li><strong>Founder</strong> — any wallet that has created a waterfall. Can fund it,
                   distribute, and grant auditor access. Anyone can become a founder by building a
-                  first waterfall from the app.</li>
+                  first waterfall from the app. Every waterfall shares one contract&apos;s USDC
+                  balance, but a per-cap-table ledger means pooling or distributing on your
+                  waterfall can never claim funds already attributed to someone else&apos;s.</li>
                 <li><strong>Owner</strong> — a wallet listed as a beneficiary on a waterfall.
                   Decrypts only their own computed payout — never another owner&apos;s, never the
                   founder&apos;s view of the terms.</li>
@@ -142,9 +144,12 @@ export default function DocsPage() {
                   cap or split ratio, and an optional milestone gate.</li>
                 <li><strong>Create &amp; lock</strong> — every term is encrypted in your browser
                   first; locking finalizes the tiers on-chain.</li>
-                <li><strong>Fund it</strong> — send Sepolia USDC to the 0xSplits Split shown on your
-                  founder Overview, then click <strong>Pool revenue</strong> to make the total
-                  public and provable.</li>
+                <li><strong>Fund it — three steps</strong>: send Sepolia USDC to the 0xSplits Split
+                  address shown on your founder Overview; click <strong>Route via 0xSplits</strong>
+                  (the Split&apos;s own unmodified <code>distribute()</code>, which is what actually
+                  forwards your funds into ScripWaterfall — sending USDC to the Split alone does
+                  nothing until this runs); then click <strong>Pool revenue</strong> to make what
+                  arrived your waterfall&apos;s public, provable total.</li>
                 <li><strong>Distribute</strong> — evaluates the sealed waterfall against the pooled
                   total inside the Nox TEE and settles every owner&apos;s confidential payout in one
                   transaction.</li>

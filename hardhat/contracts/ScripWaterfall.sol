@@ -70,6 +70,20 @@ contract ScripWaterfall {
     mapping(uint256 => CapTable) private capTables;
     uint256 public capTableCount;
 
+    // Any wallet can create a cap table, and every cap table shares this one contract's USDC
+    // balance (0xSplits sends a plain, untagged ERC-20 transfer — there is no way to know which
+    // deal a given transfer was meant for). Without this ledger, poolRevenue(id) would just read
+    // the raw shared balance, so cap table A's founder could pool/distribute funds that actually
+    // arrived for cap table B. pooledUnspent[id] tracks how much has been attributed to id and not
+    // yet distributed; totalPooledUnspent is the sum already attributed to SOME id. poolRevenue
+    // only ever hands out the newly-arrived delta (balance - totalPooledUnspent) to the caller's
+    // id, so the same USDC can never be attributed twice. (Residual, unavoidable limitation: if two
+    // founders both deposit before either calls poolRevenue, whoever calls it first claims the
+    // combined new delta for their own id — there is no on-chain way to tag an incoming transfer to
+    // a specific deal. Fund your own cap table and call Pool revenue promptly, same as the real app.)
+    mapping(uint256 => uint256) public pooledUnspent;
+    uint256 public totalPooledUnspent;
+
     event SplitSet(address indexed split);
     event CapTableCreated(uint256 indexed id, address indexed founder, address[] owners, uint256 tierCount);
     event WaterfallLocked(uint256 indexed id);
@@ -156,8 +170,14 @@ contract ScripWaterfall {
     }
 
     // ---- 3. pool revenue (0xSplits routed public USDC here, unmodified) ----
+    // Attributes only newly-arrived, not-yet-claimed USDC to this id (see pooledUnspent above) —
+    // never funds already pooled for a different cap table.
     function poolRevenue(uint256 id) external returns (uint256 publicTotal) {
-        publicTotal = usdc.balanceOf(address(this)); // pooled, public — the provable-total anchor
+        uint256 balance = usdc.balanceOf(address(this));
+        uint256 newlyArrived = balance - totalPooledUnspent; // funds nobody has claimed yet
+        pooledUnspent[id] += newlyArrived;
+        totalPooledUnspent += newlyArrived;
+        publicTotal = pooledUnspent[id]; // this id's own pooled, provable total
         emit RevenuePooled(id, publicTotal);
     }
 
@@ -170,7 +190,10 @@ contract ScripWaterfall {
         require(c.locked, "unlocked");
         require(msg.sender == c.founder, "founder");
         require(!c.distributed, "already distributed");
+        require(publicTotal <= pooledUnspent[id], "exceeds this cap table's pooled total");
         c.distributed = true;
+        pooledUnspent[id] -= publicTotal;
+        totalPooledUnspent -= publicTotal;
 
         usdc.forceApprove(address(cToken), publicTotal);
         cToken.wrap(address(this), publicTotal);

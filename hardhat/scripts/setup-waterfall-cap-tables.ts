@@ -26,7 +26,7 @@ const PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY as `0x${string}`;
 const RPC_URL = process.env.SEPOLIA_RPC_URL ?? "https://ethereum-sepolia-rpc.publicnode.com";
 const OWNER_B = process.env.OWNER_B_ADDRESS as `0x${string}`;
 
-const ABS_CAP = 400_000n; // 0.4 USDC, 6 decimals
+const ABS_CAP = 100_000n; // 0.1 USDC, 6 decimals (rescaled to fit the deployer's remaining test USDC)
 const FOUNDER_BASE_BPS = 7000n;
 const INVESTOR_BASE_BPS = 1500n;
 const BONUS_BPS = 1500n;
