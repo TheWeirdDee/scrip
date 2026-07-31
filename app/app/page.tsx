@@ -130,11 +130,17 @@ export default function AppPage() {
   }, [wallet.walletClient]);
 
   const switchRole = (next: Role) => { if (!availableRoles.includes(next)) return; setRole(next); setRoleMenu(false); setFounderView("overview"); setOwnerView("overview"); };
+  // Anyone with a connected wallet can become a founder by creating their first waterfall —
+  // createCapTable has no allowlist. Founder only shows up in availableRoles AFTER they've
+  // created one, so the entry point into that flow can't be gated behind availableRoles too,
+  // or a brand-new wallet would have no way to ever get there.
+  const startFounding = () => { setRole("founder"); setFounderView("overview"); setRoleMenu(false); };
+  const canFound = Boolean(wallet.address) && !rolesLoading;
 
   return <div className="dashboard-shell">
     <aside className="dashboard-sidebar">
       <Link href="/" className="dashboard-logo"><Logo /></Link>
-      {availableRoles.includes("founder") && <button className="sidebar-primary" onClick={() => { if (role === "founder") { setFounderView("overview"); document.getElementById("role-content")?.scrollIntoView(); } else { switchRole("founder"); } }}><Plus size={17} /> New cap table</button>}
+      {canFound && <button className="sidebar-primary" onClick={() => { if (role === "founder") { setFounderView("overview"); document.getElementById("role-content")?.scrollIntoView(); } else if (availableRoles.includes("founder")) { switchRole("founder"); } else { startFounding(); } }}><Plus size={17} /> New waterfall</button>}
       <nav className="sidebar-nav" aria-label="Dashboard">
         <span className="sidebar-label">Workspace</span>
         <button
@@ -150,7 +156,7 @@ export default function AppPage() {
         <span className="sidebar-label sidebar-label-spaced">Network</span>
         <a href={`https://sepolia.etherscan.io/address/${SCRIP_WATERFALL_ADDRESS}`} target="_blank" rel="noreferrer"><Icon name="shield"/>Contracts <ArrowUpRight size={13} /></a>
       </nav>
-      <div className="sidebar-foot"><Link href="/"><Icon name="help"/>Product guide</Link><div className="network-chip"><i/>Sepolia <span>Live</span></div></div>
+      <div className="sidebar-foot"><Link href="/#how-it-works"><Icon name="help"/>Product guide</Link><div className="network-chip"><i/>Sepolia <span>Live</span></div></div>
     </aside>
 
     <div className="dashboard-main">
@@ -175,7 +181,10 @@ export default function AppPage() {
             <div className="onboarding-action"><div className="secure-mark"><Icon name="shield"/></div><span>Step 2 of 3</span><h2>Connect to continue</h2><p>Use a wallet on Ethereum Sepolia. Scrip never takes custody of your assets or keys.</p><ConnectButton wallet={wallet}/><small><i/>Encrypted inputs are prepared locally in your browser.</small></div>
           </div>
         </section> : rolesLoading ? <section className="onboarding"><div className="onboarding-copy"><span className="dashboard-eyebrow">Verifying access</span><h1>Reading wallet roles from Sepolia…</h1><p>Founder, owner, and auditor access is derived from the waterfall contract.</p></div></section>
-        : !role ? <section className="onboarding"><div className="onboarding-copy"><span className="dashboard-eyebrow">No on-chain role</span><h1>This wallet has no Scrip access.</h1><p>{rolesError ? `Role detection failed: ${rolesError}` : "This address has not created a cap table, is not listed as an owner, and has not been granted auditor access."}</p></div></section>
+        : !role ? <section className="onboarding">
+          <div className="onboarding-copy"><span className="dashboard-eyebrow">No on-chain role yet</span><h1>This wallet isn&apos;t on a waterfall yet.</h1><p>{rolesError ? `Role detection failed: ${rolesError}` : "You're not listed as an owner and haven't been granted auditor access on any waterfall — but anyone can start one."}</p></div>
+          <div className="onboarding-action"><div className="secure-mark"><Icon name="shield"/></div><h2>Build your first waterfall</h2><p>Become a founder by creating a sealed waterfall — owners, tier order, recoup caps, and milestones, encrypted in your browser.</p><button className="button button-primary" onClick={startFounding}><Plus size={15}/> New waterfall</button></div>
+        </section>
         : <>
           <section className="dashboard-heading"><div><span className="dashboard-eyebrow">{current!.label} workspace</span><h1>{activeNoun}</h1><p>{activeDescription}</p></div><div className="heading-status"><i/>Connected to Sepolia</div></section>
           <section className="metric-grid">

@@ -82,19 +82,54 @@ static sealed percentage cannot express this.
 Cap tables #1 and #2 on `ScripWaterfall` are the live milestone-flip demo (see above). `log.md` has
 every real transaction hash from building this, phase by phase.
 
-## Run it
+## Prerequisites
+
+- Node.js 18+ and npm.
+- A browser wallet (MetaMask or similar) with an account on **Ethereum Sepolia**.
+- Sepolia test ETH for gas — a public faucet (e.g. the one built into most wallets, or
+  `sepoliafaucet.com`) is enough; the frontend itself never asks you to fund anything to try it,
+  since the contracts above are already deployed and live.
+- Only needed if you want to redeploy or run the setup scripts yourself: a Sepolia RPC URL and a
+  funded private key in `hardhat/.env` (see `hardhat/.env.example`), plus some Sepolia test USDC
+  (Circle's faucet at `usdcfaucet.com` supports Sepolia).
+
+## Install and run
 
 **Frontend (owner portal — founder / owner / auditor views):**
 ```bash
 npm install
 npm run dev      # next dev --webpack — never Turbopack, per project rules
 ```
-Connect a Sepolia wallet. As the demo founder or investor (see `hardhat/.env` after running the
-setup scripts) you can decrypt your own confidential payout; as the founder you can pool revenue,
-distribute, grant an auditor, or build a brand-new sealed waterfall (every recoup cap, ratio, and
-milestone flag is encrypted in your browser before anything touches the chain).
+Open `http://localhost:3000`, click **Launch the Sepolia app**, and connect a wallet on Sepolia.
+No environment variables are needed for the frontend — the deployed contract addresses are already
+committed in `app/lib/contracts.ts`, pointing at the live Sepolia deployment above.
 
-**Contracts (already deployed to the addresses above; scripts to redeploy/reset the demo):**
+## Using the dApp
+
+1. **Connect a wallet** on Sepolia from `/app`. A wallet with no history yet lands on "No on-chain
+   role yet" — that's expected for a brand-new address, not an error.
+2. **Become a founder** by clicking **New waterfall** (available to any connected wallet — there's
+   no allowlist). Add owner addresses, then build the waterfall: each tier is a beneficiary, a
+   "recoups first $X" or "then splits N%" rule, and an optional milestone gate. Every dollar
+   amount, percentage, and milestone flag is encrypted in your browser before **Create & lock**
+   submits it on-chain.
+3. **Fund it**: send Sepolia USDC to the 0xSplits Split address shown on the founder Overview (the
+   unmodified 0xSplits rail), then click **Pool revenue** to make the total public and provable.
+4. **Distribute**: click **Distribute** — this evaluates the sealed waterfall against the pooled
+   total inside the Nox TEE and settles each owner's confidential payout in one transaction.
+5. **Decrypt as an owner**: switch to (or connect as) an owner wallet listed on that waterfall —
+   the Owner view decrypts that wallet's own computed payout. No other owner, the founder, or the
+   public can see it.
+6. **Grant an auditor** (optional): from the founder view, grant a specific address scoped
+   decrypt access to the whole batch of payouts — recorded on-chain, revocable, without making the
+   deal terms public to anyone else.
+
+To see this without funding anything yourself, connect as the pre-seeded demo founder or investor
+wallet (see `hardhat/.env` after running the setup scripts below) against cap tables #1/#2 on
+`ScripWaterfall` — the real milestone-flip proof described above.
+
+## Redeploy or reset the demo (optional — contracts above are already live)
+
 ```bash
 cd hardhat
 npm install
