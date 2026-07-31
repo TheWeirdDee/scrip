@@ -156,7 +156,7 @@ export default function AppPage() {
         <span className="sidebar-label sidebar-label-spaced">Network</span>
         <a href={`https://sepolia.etherscan.io/address/${SCRIP_WATERFALL_ADDRESS}`} target="_blank" rel="noreferrer"><Icon name="shield"/>Contracts <ArrowUpRight size={13} /></a>
       </nav>
-      <div className="sidebar-foot"><Link href="/#how-it-works"><Icon name="help"/>Product guide</Link><div className="network-chip"><i/>Sepolia <span>Live</span></div></div>
+      <div className="sidebar-foot"><Link href="/docs"><Icon name="help"/>Product guide</Link><div className="network-chip"><i/>Sepolia <span>Live</span></div></div>
     </aside>
 
     <div className="dashboard-main">
