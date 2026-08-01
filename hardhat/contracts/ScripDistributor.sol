@@ -9,9 +9,6 @@ import {IERC20ToERC7984Wrapper} from "@iexec-nox/nox-confidential-contracts/cont
 /**
  * ScripDistributor — confidential allocation + payout layer wrapping 0xSplits.
  *
- * Real, compiling implementation (see ../../ScripDistributor.sol at the repo root for the
- * original annotated spec this was built from; all `// VERIFY` marks there are now resolved).
- *
  * Role: this contract is the sole recipient of a 0xSplits Split (Split routes 100% of pooled
  * revenue here, unmodified). Scrip wraps the received USDC into a confidential ERC-7984 token
  * and distributes sealed per-owner amounts computed from sealed ownership percentages.
@@ -81,7 +78,7 @@ contract ScripDistributor {
 
     // ---- 2. lock: finalize sealed percentages ----
     // Non-leaking guard: sum-to-100% is enforced at the setup UI, not by an on-chain comparison
-    // (see BUILD_PHASES.md BLOCKERS) — a strict on-chain `Nox.eq` guard would either leak timing
+    // A strict on-chain `Nox.eq` guard would either leak timing
     // info on failure or require a decrypt round-trip mid-transaction. The sealed sum is still
     // computed and kept viewer-accessible to the founder alone, so they can self-audit off-chain.
     function lockPercentages(uint256 id) external {

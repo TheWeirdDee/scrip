@@ -27,8 +27,7 @@ deployments and proof transactions, the role-based frontend, integration scripts
 - `app/` — production Next.js frontend and product guide.
 - `hardhat/scripts/setup-waterfall-cap-tables.ts` and `run-waterfall-scenario.ts` — current demo path.
 - `waterfall-eval.ts` and `test/` — clear reference model and automated behavioral tests.
-- Root `.sol` files, the piggy-bank contract, and static-split scripts are design history/earlier
-  research, not the canonical deployment path.
+- The piggy-bank contract and static-split scripts are integration history, not the canonical path.
 - `SECURITY.md` — security status and known deployment limitations.
 
 ---
@@ -76,6 +75,29 @@ static sealed percentage cannot express this.
 - Scrip hides *the deal terms and how much each owner earns*, not *that* they participate —
   identities/addresses are never hidden.
 
+## How Scrip uses iExec Nox
+
+This is confidential computation, not encrypted storage or a hidden frontend value:
+
+1. The browser encrypts every recoup cap and split ratio as `uint256`, plus each milestone gate as
+   `bool`, using the real Nox handle client and targeting `ScripWaterfall`.
+2. `Nox.fromExternal` verifies each encrypted handle and proof. `Nox.allowThis` persists the
+   contract&apos;s permission to use those sealed terms in later computation.
+3. At distribution time the public USDC total is wrapped into confidential ERC-7984 cUSDC and
+   converted into a sealed `euint256` computation input.
+4. The contract evaluates the waterfall in two passes entirely on sealed handles: ordered recoup
+   caps first, then ratios over the remainder. It uses `Nox.lt`, `Nox.select`, `Nox.add`, `Nox.sub`,
+   `Nox.mul`, and `Nox.div`; milestone booleans conditionally select real payouts or sealed zero.
+5. `Nox.allow` authorizes the ERC-7984 contract to consume each computed payout, and
+   `confidentialTransfer` settles it to the recipient without exposing the amount.
+6. `Nox.addViewer` grants each owner access only to their own payout. A founder can explicitly add
+   an auditor as a viewer of the computed payout batch; the public never receives that permission.
+7. Owners and auditors decrypt authorized handles through the real Nox handle client. Gateway/ACL
+   indexing delay is handled by bounded retry UX rather than substituted or mocked values.
+
+The live proof is cap tables #1 and #2: the same public 1 USDC input produces different decrypted
+payouts because only one sealed milestone bit changes.
+
 ## How it fits together
 
 - **[0xSplits](https://splits.org)** (unmodified, v2 Push Split) — public revenue routing +
@@ -102,6 +124,16 @@ static sealed percentage cannot express this.
 | USDC (Circle, Sepolia) | [`0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`](https://sepolia.etherscan.io/address/0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238) |
 | `ScripWaterfall` v1 (superseded — shared-pool accounting, kept live as history) | [`0x137077d0c4ef8179b7e405a19ee4e62210e5ae43`](https://sepolia.etherscan.io/address/0x137077d0c4ef8179b7e405a19ee4e62210e5ae43) |
 | `ScripDistributor` (earlier static-split demo, kept live, superseded by ScripWaterfall) | [`0x3b323cee5cc1dc3fead35c74b45062aa43f45ede`](https://sepolia.etherscan.io/address/0x3b323cee5cc1dc3fead35c74b45062aa43f45ede) |
+
+## Submission criteria evidence
+
+| Criterion | Evidence |
+|---|---|
+| Accessible | Live landing page, app, and guide at [scrip-three.vercel.app](https://scrip-three.vercel.app), `/app`, and `/docs` |
+| End to end, no mock data | Real Circle Sepolia USDC → unmodified 0xSplits → ScripWaterfall → ERC-7984 cUSDC; operational state comes from contract reads, events, receipts, and authorized Nox decryption |
+| iExec feedback | [`feedback.md`](feedback.md) documents SDK, Solidity, Hardhat, ACL, latency, reliability, composability, friction, and concrete suggestions from the build |
+| Technical Nox implementation | Browser encryption and proofs, sealed conditional arithmetic, ERC-7984 settlement, recipient ACLs, auditor disclosure, and real handle decryption; detailed above |
+| UX | Multi-wallet discovery, Sepolia enforcement, role-based workspaces, validated waterfall builder, explicit funding steps, transaction states/links, bounded decrypt retries, denial/error states, responsive layout, and a complete product guide |
 
 Cap tables #1 and #2 on `ScripWaterfall` v2 are the live milestone-flip demo (see above). `log.md`
 has every real transaction hash from building this, phase by phase, including the v1→v2 fix.
@@ -160,8 +192,18 @@ npm install
 npm run dev      # next dev --webpack — never Turbopack, per project rules
 ```
 Open `http://localhost:3000`, click **Launch the Sepolia app**, and connect a wallet on Sepolia.
-No environment variables are needed for the frontend — the deployed contract addresses are already
-committed in `app/lib/contracts.ts`, pointing at the live Sepolia deployment above.
+The deployed contract addresses are committed in `app/lib/contracts.ts`. `NEXT_PUBLIC_SITE_URL` is
+optional locally and defaults to the production URL.
+
+### Deploy the frontend to Vercel
+
+1. Import `https://github.com/TheWeirdDee/scrip` into Vercel with the repository root as the project root.
+2. Use the detected Next.js settings and `npm run build` as the build command.
+3. Add `NEXT_PUBLIC_SITE_URL=https://scrip-three.vercel.app` for Production, Preview, and Development.
+4. Deploy. Do not add deployer, owner, or auditor private keys to Vercel; wallet signing happens in
+   the user's browser.
+
+The current production deployment is [scrip-three.vercel.app](https://scrip-three.vercel.app).
 
 ## Using the dApp — the full run order
 
@@ -182,8 +224,8 @@ committed in `app/lib/contracts.ts`, pointing at the live Sepolia deployment abo
 8. **Decrypt as an owner** — connect (or switch to) an owner wallet listed on that waterfall; the
    Owner view decrypts that wallet's own computed payout only. No other owner, the founder, or the
    public can see it.
-9. **Grant an auditor** (optional) — from the founder view, grant a specific address scoped,
-   scoped decrypt access to the whole batch of payouts, without making the deal terms public.
+9. **Grant an auditor** (optional) — from the founder view, grant a specific address scoped decrypt
+   access to the whole batch of payouts, without making the deal terms public.
    Viewer grants are permanent on the current deployment.
 
 To see this without funding anything yourself, connect as the pre-seeded demo founder or investor
@@ -204,13 +246,15 @@ npx tsx scripts/run-waterfall-scenario.ts 1 1    # fund + distribute cap table 1
 npx tsx scripts/run-waterfall-scenario.ts 2 1    # fund + distribute cap table 2 (milestone met)
 npx tsx scripts/decrypt-waterfall-payouts.ts     # each owner decrypts only their own, both scenarios
 ```
-Needs a Sepolia RPC URL + a funded private key in `hardhat/.env` (see `hardhat/.env.example`).
+Copy `hardhat/.env.example` to `hardhat/.env`, then set a Sepolia RPC URL, a funded deployer private
+key, and a second Sepolia wallet address for `OWNER_B_ADDRESS`. Deployment scripts update
+`hardhat/deployed.sepolia.json`; copy the resulting addresses into `app/lib/contracts.ts` before
+deploying the frontend.
 
 ## Docs
 
 - [`PRD.md`](PRD.md) — product + positioning
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — the 0xSplits wrap, ERC-7984 interface wall, clean path
-- [`BUILD_PHASES.md`](BUILD_PHASES.md) — phased build checklist for the original static-split build
 - [`DEMO_SCRIPT.md`](DEMO_SCRIPT.md) — the demo video script, led by the milestone-flip money shot
 - [`log.md`](log.md) — append-only build log: every real finding, bug, and tx hash, phase by phase
 - [`feedback.md`](feedback.md) — required iExec DX feedback, written from the real build

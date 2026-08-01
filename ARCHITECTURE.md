@@ -34,11 +34,11 @@ Scrip is designed *around* it (§4).
 
 ## 4. Two wrap architectures (clean primary, fallback documented)
 
-### CLEAN (primary) — Splits routes the public total, Nox distributes sealed shares
+### Splits routes the public total; Nox distributes sealed shares
 1. Revenue arrives as **real USDC** into a 0xSplits Split (public, provable total in).
 2. The Split's recipient is a **Scrip distributor contract** (a single recipient = 100% to Scrip),
    so Splits does what it always does, unmodified, and hands the pooled total to Scrip.
-3. Scrip **wraps** the received USDC into a confidential ERC-7984 token (ERC7984ERC20Wrapper).
+3. Scrip **wraps** the received USDC into a confidential ERC-7984 token (`ERC20ToERC7984Wrapper`).
 4. Scrip computes each owner's cut from their **sealed ownership percentage** (Nox TEE
    computation on the public total) and **confidentialTransfers** the sealed amount to each owner.
 5. Each owner decrypts only their own payout (ACL). The Split's inbound total remains public.
@@ -46,14 +46,6 @@ Scrip is designed *around* it (§4).
 Here 0xSplits is genuinely wrapped and unmodified — it routes and proves the total; Scrip is a
 Split recipient that adds the confidential allocation layer. The "split percentages" live sealed
 in Scrip, not in the public Split.
-
-### FALLBACK (if step 3/4 confidential path fights the async TEE in time)
-0xSplits handles the **public accounting** (provable total, recipient registry, the equity
-structure as a visible-but-aggregate split), while Scrip handles the **confidential payout**
-alongside — recipients' individual amounts sealed via Nox, computed from sealed percentages,
-paid as ERC-7984. Slightly looser coupling; still "built on / wraps 0xSplits."
-
-Decide clean-vs-fallback at Phase 3.
 
 ## 5. Sealing the cap table (the equity layer)
 
@@ -98,7 +90,7 @@ replaces the single sealed percentage per owner (§§1-8 above) with an ordered 
 **tiers** — each an absolute recoup cap, a split ratio, and a milestone gate, all sealed handles.
 `distribute()` evaluates the whole waterfall in one pass using only Nox's synchronous library
 calls (`add/sub/mul/div/lt/select`) — **no async request/callback**, contrary to an earlier design
-assumption in the repo-root `ScripWaterfall.sol` spec draft: every Nox compute call here resolves
+earlier design assumption: every Nox compute call here resolves
 in the same transaction, exactly like §7's `payout = pct × total / 10_000`, just chained across
 more operations and gated by `select` instead of a single `mul`/`div` pair. The only async step
 anywhere in this system remains decrypting a handle afterward (§6, unchanged). A separate 0xSplits

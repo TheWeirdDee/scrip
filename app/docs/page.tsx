@@ -20,6 +20,7 @@ const Arrow = () => <ArrowUpRight size={13} aria-hidden />;
 const onThisPage = [
   ["#what", "What Scrip is"],
   ["#waterfall", "How the waterfall works"],
+  ["#nox", "How Scrip uses Nox"],
   ["#roles", "Founder, owner, auditor"],
   ["#funding", "Prerequisites & funding"],
   ["#usage", "Step by step"],
@@ -111,6 +112,39 @@ export default function DocsPage() {
               <p>
                 Same total, different real decrypted payout — driven by a rule Nox evaluated
                 privately, not a number someone typed twice.
+              </p>
+            </section>
+
+            <section id="nox">
+              <h2>How Scrip uses iExec Nox</h2>
+              <p>
+                Scrip uses Nox for the allocation computation itself, not merely to store an
+                encrypted number or hide a value in the interface.
+              </p>
+              <ol>
+                <li><strong>Encrypt in the browser:</strong> recoup caps and ratios are encrypted as
+                  <code> uint256</code> values, and milestone gates as <code>bool</code>, with the
+                  real Nox handle client targeting ScripWaterfall.</li>
+                <li><strong>Verify and persist:</strong> <code>Nox.fromExternal</code> verifies every
+                  handle and proof; <code>Nox.allowThis</code> lets the contract use those sealed
+                  terms in later computation.</li>
+                <li><strong>Compute privately:</strong> the two-pass waterfall uses
+                  <code> Nox.lt</code>, <code>Nox.select</code>, <code>Nox.add</code>,
+                  <code> Nox.sub</code>, <code>Nox.mul</code>, and <code>Nox.div</code> entirely on
+                  sealed handles. Milestone booleans select a real payout or sealed zero.</li>
+                <li><strong>Settle confidentially:</strong> real Sepolia USDC is wrapped into
+                  ERC-7984 cUSDC. <code>Nox.allow</code> authorizes the token contract and
+                  <code> confidentialTransfer</code> sends each computed sealed payout.</li>
+                <li><strong>Enforce disclosure:</strong> <code>Nox.addViewer</code> gives each owner
+                  access only to their own payout. Explicitly granted auditors can inspect the
+                  payout batch; the public cannot.</li>
+                <li><strong>Decrypt real handles:</strong> owners and auditors use the Nox handle
+                  client. The UI retries while ACL indexing catches up and never substitutes mock
+                  payout data.</li>
+              </ol>
+              <p>
+                Cap tables #1 and #2 prove the conditional computation: the same public 1 USDC total
+                produces different decrypted payouts because only one sealed milestone bit changes.
               </p>
             </section>
 

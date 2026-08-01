@@ -1,7 +1,5 @@
 # iExec Nox Integration Feedback — Scrip
 
-> Required deliverable. Fill in HONESTLY from the actual build — real friction is more useful (and
-> scores better) than praise. Update as you go.
 
 ## What we built
 Scrip: a confidential conditional-revenue-waterfall layer wrapping an unmodified 0xSplits Split.

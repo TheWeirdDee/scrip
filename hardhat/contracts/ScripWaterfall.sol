@@ -9,9 +9,6 @@ import {IERC20ToERC7984Wrapper} from "@iexec-nox/nox-confidential-contracts/cont
 /**
  * ScripWaterfall — confidential CONDITIONAL distribution wrapping 0xSplits.
  *
- * Real, compiling implementation (see ../../ScripWaterfall.sol at the repo root for the original
- * annotated spec this was built from).
- *
  * The split is not a static sealed percentage. It is an ordered, sealed WATERFALL: each tier has a
  * sealed absolute cap ("first $X to A"), a sealed ratio ("then split the rest N%"), and a sealed
  * milestone gate. Nox evaluates the whole waterfall on the PUBLIC pooled total against the SEALED
@@ -141,8 +138,8 @@ contract ScripWaterfall {
 
     // ---- 2. lock the waterfall (no term changes after) ----
     // Unlike a static split, tiers are not required to sum to 100% up front — the waterfall
-    // consumes whatever the actual pooled total turns out to be at distribute() time (see
-    // ../../ScripWaterfall.sol's spec note; a real deal's tiers rarely partition the total exactly).
+    // consumes whatever the actual pooled total turns out to be at distribute() time; a real
+    // deal's tiers rarely partition the total exactly.
     function lockWaterfall(uint256 id) external {
         CapTable storage c = capTables[id];
         require(msg.sender == c.founder, "not founder");
