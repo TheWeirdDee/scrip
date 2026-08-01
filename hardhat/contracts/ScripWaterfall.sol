@@ -115,6 +115,10 @@ contract ScripWaterfall {
     ) external returns (uint256 id) {
         require(owners.length > 0, "no owners");
         require(tiers.length > 0, "no tiers");
+        for (uint256 i = 0; i < owners.length; i++) {
+            require(owners[i] != address(0), "zero owner");
+            for (uint256 j = 0; j < i; j++) require(owners[j] != owners[i], "duplicate owner");
+        }
         id = ++capTableCount;
         CapTable storage c = capTables[id];
         c.founder = msg.sender;
@@ -173,8 +177,12 @@ contract ScripWaterfall {
     // Attributes only newly-arrived, not-yet-claimed USDC to this id (see pooledUnspent above) —
     // never funds already pooled for a different cap table.
     function poolRevenue(uint256 id) external returns (uint256 publicTotal) {
+        CapTable storage c = capTables[id];
+        require(c.founder != address(0), "unknown cap table");
+        require(msg.sender == c.founder, "not founder");
         uint256 balance = usdc.balanceOf(address(this));
         uint256 newlyArrived = balance - totalPooledUnspent; // funds nobody has claimed yet
+        require(newlyArrived > 0, "no new revenue");
         pooledUnspent[id] += newlyArrived;
         totalPooledUnspent += newlyArrived;
         publicTotal = pooledUnspent[id]; // this id's own pooled, provable total
@@ -190,7 +198,8 @@ contract ScripWaterfall {
         require(c.locked, "unlocked");
         require(msg.sender == c.founder, "founder");
         require(!c.distributed, "already distributed");
-        require(publicTotal <= pooledUnspent[id], "exceeds this cap table's pooled total");
+        require(publicTotal > 0, "zero total");
+        require(publicTotal == pooledUnspent[id], "must distribute full pooled total");
         c.distributed = true;
         pooledUnspent[id] -= publicTotal;
         totalPooledUnspent -= publicTotal;
@@ -243,6 +252,8 @@ contract ScripWaterfall {
     function grantAuditor(uint256 id, address auditor) external {
         CapTable storage c = capTables[id];
         require(msg.sender == c.founder, "founder");
+        require(auditor != address(0), "zero auditor");
+        require(c.distributed, "not distributed");
         for (uint256 i = 0; i < c.ownerCount; i++) {
             Nox.addViewer(c.sealedPayout[i], auditor);
         }

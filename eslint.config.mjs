@@ -7,6 +7,9 @@ const eslintConfig = defineConfig([
   ...nextTs,
   // Override default ignores of eslint-config-next.
   globalIgnores([
+    '.tmp-hardhat-local/**',
+    'hardhat/artifacts/**',
+    'hardhat/cache/**',
     // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",

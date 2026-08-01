@@ -3,9 +3,9 @@
  *
  * This is the plain-language algorithm the confidential compute performs. In production this runs
  * INSIDE Nox on SEALED terms (thresholds/ratios/milestones), taking only the PUBLIC total as clear
- * input, and emitting one SEALED payout per owner. Here it's shown in the clear so the behavior is
- * legible + unit-testable. The on-chain contract (ScripWaterfall.sol) requests this as an async
- * Nox compute; the sealed results land in fulfillWaterfall().
+ * input, and emitting one SEALED payout per owner. Here it is shown in the clear so the behavior is
+ * legible and unit-testable. The deployed contract performs the Nox operations synchronously in
+ * distribute(); only later handle decryption is asynchronous.
  *
  * WHY THIS IS THE INNOVATION: every other Nox project seals a STATIC number the founder typed.
  * Scrip's split is DECIDED by a rule Nox evaluates on hidden terms — confidential COMPUTATION.

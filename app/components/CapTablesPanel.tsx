@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getAddress, isAddress } from "viem";
 import type { WalletState } from "@/app/lib/useWallet";
 import { SCRIP_WATERFALL_ADDRESS, scripWaterfallAbi } from "@/app/lib/contracts";
 import { fetchWaterfallState, type WaterfallState } from "@/app/lib/waterfallEvents";
@@ -53,13 +54,17 @@ export function CapTablesPanel({ wallet }: { wallet: WalletState }) {
 
   const grantAuditor = async (id: bigint) => {
     if (!wallet.walletClient || !wallet.address || !auditorAddr) return;
+    if (!isAddress(auditorAddr)) {
+      setGrantTx({ state: 'error', message: 'Enter a valid auditor address.' });
+      return;
+    }
     setGrantTx({ state: "pending" });
     try {
       const hash = await wallet.walletClient.writeContract({
         address: SCRIP_WATERFALL_ADDRESS,
         abi: scripWaterfallAbi,
         functionName: "grantAuditor",
-        args: [id, auditorAddr as `0x${string}`],
+        args: [id, getAddress(auditorAddr)],
         account: wallet.address,
         chain: wallet.walletClient.chain,
       });

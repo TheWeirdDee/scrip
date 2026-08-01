@@ -13,8 +13,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://scrip-three.vercel.app'),
   title: "Scrip — Private ownership, provable outcomes",
   description: "Confidential cap tables and private revenue distribution, with publicly provable totals.",
+  openGraph: {
+    title: 'Scrip — Private ownership, provable outcomes',
+    description: 'Conditional revenue waterfalls computed confidentially with iExec Nox.',
+    type: 'website',
+  },
+  twitter: { card: 'summary_large_image' },
+  icons: { icon: '/scrip-logo.png', shortcut: '/scrip-logo.png', apple: '/scrip-logo.png' },
 };
 
 // Without this, phones render against a wide default virtual viewport (~980px), so every

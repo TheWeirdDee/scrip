@@ -1,17 +1,19 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ArrowUpRight } from "lucide-react";
 import { Logo } from "@/app/components/Logo";
+
+export const metadata: Metadata = {
+  title: 'Scrip Product Guide',
+  description: 'Set up, fund, distribute, decrypt, and audit a confidential Scrip waterfall on Ethereum Sepolia.',
+  alternates: { canonical: '/docs' },
+};
 import {
   SCRIP_WATERFALL_ADDRESS,
   CONFIDENTIAL_USDC_ADDRESS,
   WATERFALL_SPLIT_ADDRESS,
   USDC_ADDRESS,
 } from "@/app/lib/contracts";
-
-export const metadata = {
-  title: "Scrip — Product guide",
-  description: "How Scrip's confidential waterfall works, and how to use it end to end.",
-};
 
 const Arrow = () => <ArrowUpRight size={13} aria-hidden />;
 
@@ -200,7 +202,7 @@ export default function DocsPage() {
                 <li><strong>Decrypt as an owner</strong> — connect the owner&apos;s wallet and open
                   the Owner view to decrypt that wallet&apos;s own computed payout.</li>
                 <li><strong>Grant an auditor</strong> (optional) — from the founder view, grant a
-                  specific address scoped, revocable access to the batch of payouts.</li>
+                  specific address scoped access to the batch of payouts. Grants are permanent on the current deployment.</li>
               </ol>
             </section>
 

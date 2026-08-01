@@ -1,8 +1,15 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ArrowUpRight, ArrowDown, Circle } from "lucide-react";
 import { Logo } from "@/app/components/Logo";
 import { LandingMotion } from "@/app/components/LandingMotion";
 import { SCRIP_WATERFALL_ADDRESS, CONFIDENTIAL_USDC_ADDRESS, WATERFALL_SPLIT_ADDRESS } from "@/app/lib/contracts";
+
+export const metadata: Metadata = {
+  title: 'Scrip | Confidential revenue waterfalls',
+  description: 'Private deal terms, provable totals, and confidential cUSDC settlement using iExec Nox and unmodified 0xSplits.',
+  alternates: { canonical: '/' },
+};
 
 const steps = [
   ["01", "Keep 0xSplits intact", "Revenue follows the existing, unmodified 0xSplits rail. Its public total and composability remain exactly where integrators expect them.", "Unmodified protocol"],
@@ -14,7 +21,7 @@ const faqs = [
   ["What exactly is sealed, and what isn't?", "Every tier's recoup cap, split ratio, and milestone gate, plus every individual payout, are sealed. Owner addresses, tier count and order, and the total revenue distributed are public — Scrip hides the deal terms and who earns what, not that a deal exists."],
   ["Is this really computed confidentially, or just hidden in the UI?", "Computed. Two waterfalls on Sepolia with identical tiers, funded with the same 1 USDC, differ only in one sealed milestone bit — and decrypt to different payouts (0.629999/0.369998 USDC vs. 0.765/0.235 USDC). See the money shot above; the transaction hashes are public."],
   ["Does Scrip modify 0xSplits?", "No. 0xSplits routes revenue exactly as it already does — Scrip is just a normal recipient of an unmodified Split. The confidential layer only starts once funds reach Scrip's own contract."],
-  ["Can the founder see everyone's payout?", "No. Each owner decrypts only their own payout. The founder sets the sealed terms but doesn't get a standing view of the computed results — an auditor can be granted that scoped view explicitly, on-chain, revocably."],
+  ["Can the founder see everyone's payout?", "No. Each owner decrypts only their own payout. The founder sets the sealed terms but doesn't get a standing view of the computed results — an auditor can be granted that scoped view explicitly on-chain. Grants are permanent on the current deployment."],
   ["What happens if a milestone isn't met?", "The tiers gated to that milestone simply compute to zero for this distribution — the rest of the waterfall (recoup caps, ungated splits) still runs normally. Nothing reverts and nothing leaks about why."],
   ["Is this real money, or a simulation?", "Real Sepolia USDC, wrapped 1:1 into a real ERC-7984 confidential token, moved through a real, unmodified 0xSplits Split. No mock data anywhere on the core path."],
   ["Why Nox instead of FHE?", "Nox is iExec's TEE-based confidential compute layer — sealed arithmetic (add/sub/mul/div, comparisons, and conditional select) runs as normal, synchronous Solidity calls inside a trusted execution environment. This build uses Nox only; no FHE anywhere."],

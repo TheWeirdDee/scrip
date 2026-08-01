@@ -192,6 +192,18 @@ export default function AppPage() {
             <article><div><span>Privacy status</span><Icon name="shield"/></div><strong>Protected</strong><p>Terms and payouts remain sealed</p></article>
             <article><div><span>Settlement asset</span><Icon name="wallet"/></div><strong>cUSDC</strong><p>Confidential ERC-7984</p></article>
           </section>
+          <section className="rounded-2xl border border-emerald-400/20 bg-emerald-400/[.04] p-5" aria-labelledby="conditional-proof">
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+              <div><span className="dashboard-eyebrow">Live Sepolia proof</span><h2 id="conditional-proof" className="mt-1 text-xl font-semibold">Same public total. Different private outcome.</h2></div>
+              <span className="sealed-badge"><Icon name="shield"/>Nox computed</span>
+            </div>
+            <div className="overflow-x-auto"><table className="w-full min-w-[560px] text-left text-sm"><thead><tr className="border-b border-white/10 text-zinc-500"><th className="py-2">Evidence</th><th>Milestone not met · #1</th><th>Milestone met · #2</th></tr></thead><tbody>
+              <tr className="border-b border-white/10"><td className="py-2 text-zinc-500">Public total</td><td>1 USDC</td><td>1 USDC</td></tr>
+              <tr className="border-b border-white/10"><td className="py-2 text-zinc-500">Founder payout</td><td className="font-mono">0.629999 cUSDC</td><td className="font-mono text-emerald-300">0.765 cUSDC</td></tr>
+              <tr><td className="py-2 text-zinc-500">Investor payout</td><td className="font-mono">0.369998 cUSDC</td><td className="font-mono text-emerald-300">0.235 cUSDC</td></tr>
+            </tbody></table></div>
+            <p className="mt-3 text-xs text-zinc-500">The owner list, tier structure, and public input are the same. Only the sealed milestone bit changes the payout Nox computes.</p>
+          </section>
           <section className="role-workspace" id="role-content">
             <header><div><span className={`role-symbol ${role}`}>{role.slice(0,1).toUpperCase()}</span><div><h2>{activeNoun}</h2><p>{activeDescription}</p></div></div><span className="sealed-badge"><Icon name="shield"/>Confidential</span></header>
             <div className="role-content">

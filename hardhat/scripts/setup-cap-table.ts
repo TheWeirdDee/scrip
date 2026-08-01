@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { readFileSync, writeFileSync, appendFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, appendFileSync } from "node:fs";
 import path from "node:path";
 import { createWalletClient, http, publicActions, getContract, parseAbi } from "viem";
 import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";

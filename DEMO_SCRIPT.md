@@ -60,7 +60,7 @@ itself, privately."
 
 ## 2:15-2:45 — Privacy boundary + selective disclosure
 - Each owner decrypts ONLY their own payout — not the other's, not the terms. The total is public.
-- Founder grants an auditor scoped access → auditor sees the batch (intended disclosure), revocable.
+- Founder grants an auditor scoped access → auditor sees the batch (intended disclosure). The current deployment's grant is permanent.
 - "Private during, provable after. The deal ran on-chain; the terms never leaked."
 
 ## 2:45-3:00 — Close

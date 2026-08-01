@@ -8,6 +8,29 @@ the total distributed stays publicly provable.
 Built for **iExec WTF (Write The Future)** on the **Nox** confidential layer (TEE-based, not FHE).
 Deployed and verified real end-to-end on **Ethereum Sepolia** — no mock data.
 
+**Live app:** [https://scrip-three.vercel.app](https://scrip-three.vercel.app)
+
+The demonstrated v2 addresses below are live. The production domain is also the built-in metadata
+and sitemap fallback; `NEXT_PUBLIC_SITE_URL` can override it for preview or custom-domain deployments.
+
+## Hackathon originality and existing infrastructure
+
+Scrip was built for the iExec WTF hackathon. Existing open-source infrastructure used unchanged:
+0xSplits Push Split, Circle Sepolia USDC, iExec Nox SDK/contracts/Hardhat plugin, OpenZeppelin, Viem,
+and Next.js. Work created for this submission includes the `ScripWaterfall` confidential conditional
+engine, browser-side term encryption, per-recipient payout ACLs, auditor disclosure, Sepolia
+deployments and proof transactions, the role-based frontend, integration scripts, and documentation.
+
+## Canonical repository map
+
+- `hardhat/contracts/ScripWaterfall.sol` — canonical current contract source.
+- `app/` — production Next.js frontend and product guide.
+- `hardhat/scripts/setup-waterfall-cap-tables.ts` and `run-waterfall-scenario.ts` — current demo path.
+- `waterfall-eval.ts` and `test/` — clear reference model and automated behavioral tests.
+- Root `.sol` files, the piggy-bank contract, and static-split scripts are design history/earlier
+  research, not the canonical deployment path.
+- `SECURITY.md` — security status and known deployment limitations.
+
 ---
 
 ## Who it's for, and the wound
@@ -83,14 +106,15 @@ static sealed percentage cannot express this.
 Cap tables #1 and #2 on `ScripWaterfall` v2 are the live milestone-flip demo (see above). `log.md`
 has every real transaction hash from building this, phase by phase, including the v1→v2 fix.
 
-**Note on shared funds:** any wallet can create a waterfall, and every waterfall on this deployment
+**Single-deal deployment limitation:** any wallet can create a waterfall, and every waterfall on this deployment
 shares one contract's USDC balance. `poolRevenue`/`distribute` only ever attribute and spend the
 delta that hasn't already been claimed by another cap table (see `pooledUnspent` in
 `hardhat/contracts/ScripWaterfall.sol`), so one founder's `poolRevenue` call can no longer pool or
 spend funds already attributed to a different founder's cap table. The one residual limit: if two
 founders both deposit before either calls `poolRevenue`, whoever calls it first claims that new
-delta for their own cap table — fund your own waterfall and call **Pool revenue** promptly after
-**Route via 0xSplits**, same as the app's own flow.
+delta for their own cap table. Treat this address as a single-deal demo and fund/pool one deal at a
+time. A production multi-tenant release must use a dedicated Split/escrow per cap table so
+attribution is deterministic.
 
 ## Prerequisites & funding (read this before you click anything)
 
@@ -159,7 +183,8 @@ committed in `app/lib/contracts.ts`, pointing at the live Sepolia deployment abo
    Owner view decrypts that wallet's own computed payout only. No other owner, the founder, or the
    public can see it.
 9. **Grant an auditor** (optional) — from the founder view, grant a specific address scoped,
-   revocable decrypt access to the whole batch of payouts, without making the deal terms public.
+   scoped decrypt access to the whole batch of payouts, without making the deal terms public.
+   Viewer grants are permanent on the current deployment.
 
 To see this without funding anything yourself, connect as the pre-seeded demo founder or investor
 wallet (see `hardhat/.env` after running the setup scripts below) against cap tables #1/#2 on

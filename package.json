@@ -1,12 +1,15 @@
 {
   "name": "scrip",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --test --test-isolation=none test/*.test.ts",
+    "check": "npm run lint && npm run test && npm run build"
   },
   "dependencies": {
     "@iexec-nox/handle": "0.1.0-beta.13",

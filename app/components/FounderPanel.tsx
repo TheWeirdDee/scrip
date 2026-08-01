@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { decodeEventLog, getAddress, isAddress } from "viem";
 import type { WalletState } from "@/app/lib/useWallet";
 import {
   SCRIP_WATERFALL_ADDRESS,
@@ -53,6 +54,7 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
     { beneficiary: 0, kind: "split", amount: "10000", gate: "always" },
   ]);
   const [createTx, setCreateTx] = useState<TxStatus & { step?: string }>({ state: "idle" });
+  const [formError, setFormError] = useState<string | null>(null);
 
   const refresh = async () => {
     if (!wallet.walletClient || !wallet.address) return;
@@ -111,6 +113,19 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wallet.walletClient]);
+
+  useEffect(() => {
+    if (!wallet.walletClient || activeTableId === null) return;
+    let cancelled = false;
+    wallet.walletClient.readContract({
+      address: SCRIP_WATERFALL_ADDRESS,
+      abi: scripWaterfallAbi,
+      functionName: 'pooledUnspent',
+      args: [activeTableId],
+    }).then((value) => { if (!cancelled) setPoolAmount(value as bigint); })
+      .catch((err) => { if (!cancelled) setLoadError(err instanceof Error ? err.message : String(err)); });
+    return () => { cancelled = true; };
+  }, [activeTableId, wallet.walletClient]);
 
   const copySplit = async () => {
     if (!splitAddr) return;
@@ -181,13 +196,16 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
 
   const grantAuditor = async () => {
     if (!wallet.walletClient || !wallet.address || !auditorAddr) return;
+    if (!isAddress(auditorAddr)) {
+      setGrantTx({ state: 'error', message: 'Enter a valid auditor address.' }); return;
+    }
     setGrantTx({ state: "pending" });
     try {
       const hash = await wallet.walletClient.writeContract({
         address: SCRIP_WATERFALL_ADDRESS,
         abi: scripWaterfallAbi,
         functionName: "grantAuditor",
-        args: [BigInt(auditorTableId), auditorAddr as `0x${string}`],
+        args: [BigInt(auditorTableId), getAddress(auditorAddr)],
         account: wallet.address,
         chain: wallet.walletClient.chain,
       });
@@ -209,15 +227,47 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
 
   const createWaterfall = async () => {
     if (!wallet.walletClient || !wallet.handleClient || !wallet.address) return;
-    const validOwners = owners.filter((o) => o.trim());
-    if (validOwners.length === 0 || tiers.length === 0) return;
+    const enteredOwners = owners.map((o) => o.trim()).filter(Boolean);
+    if (enteredOwners.length === 0 || tiers.length === 0) {
+      setFormError('Add at least one owner and one tier.'); return;
+    }
+    if (enteredOwners.some((o) => !isAddress(o))) {
+      setFormError('Every owner must be a valid Ethereum address.'); return;
+    }
+    const validOwners = enteredOwners.map((o) => getAddress(o));
+    if (new Set(validOwners.map((o) => o.toLowerCase())).size !== validOwners.length) {
+      setFormError('Owner addresses must be unique.'); return;
+    }
+    if (tiers.some((t) => t.beneficiary >= validOwners.length)) {
+      setFormError('Every tier must reference an owner that has a valid address.'); return;
+    }
+    for (const tier of tiers) {
+      const amount = Number(tier.amount);
+      if (!Number.isFinite(amount) || amount < 0) {
+        setFormError('Tier amounts must be non-negative numbers.'); return;
+      }
+      if (tier.kind === 'recoup' && !/^\d+(\.\d{1,6})?$/.test(tier.amount)) {
+        setFormError('Recoup amounts support at most 6 USDC decimal places.'); return;
+      }
+      if (tier.kind === 'split' && (!/^\d+$/.test(tier.amount) || amount > 10_000)) {
+        setFormError('Split tiers must be whole basis points from 0 to 10,000.'); return;
+      }
+    }
+    const ratioFor = (gate: Gate) => tiers
+      .filter((t) => t.kind === 'split' && (t.gate === 'always' || t.gate === gate))
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+    if (ratioFor('onHit') > 10_000 || ratioFor('onMiss') > 10_000) {
+      setFormError('Active split tiers exceed 100% in at least one milestone outcome.'); return;
+    }
+    setFormError(null);
     setCreateTx({ state: "pending", step: "encrypting deal terms in the browser…" });
     try {
       const gateBool = (gate: Gate) => (gate === "always" ? true : gate === "onHit" ? milestoneMet : !milestoneMet);
 
       const tierInputs = [];
       for (const tier of tiers) {
-        const absCapUnits = tier.kind === "recoup" ? BigInt(Math.round(Number(tier.amount || "0") * 1_000_000)) : 0n;
+        const [whole, fraction = ''] = tier.amount.split('.');
+        const absCapUnits = tier.kind === "recoup" ? BigInt(whole) * 1_000_000n + BigInt(fraction.padEnd(6, '0')) : 0n;
         const ratioBpsUnits = tier.kind === "split" ? BigInt(tier.amount || "0") : 0n;
 
         const absCap = await wallet.handleClient.encryptInput(absCapUnits, "uint256", SCRIP_WATERFALL_ADDRESS);
@@ -244,13 +294,15 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
         account: wallet.address,
         chain: wallet.walletClient.chain,
       });
-      await wallet.walletClient.waitForTransactionReceipt({ hash: createHash });
-
-      const newId = (await wallet.walletClient.readContract({
-        address: SCRIP_WATERFALL_ADDRESS,
-        abi: scripWaterfallAbi,
-        functionName: "capTableCount",
-      })) as bigint;
+      const createReceipt = await wallet.walletClient.waitForTransactionReceipt({ hash: createHash });
+      const created = createReceipt.logs.flatMap((log) => {
+        try {
+          const decoded = decodeEventLog({ abi: scripWaterfallAbi, data: log.data, topics: log.topics });
+          return decoded.eventName === 'CapTableCreated' ? [decoded.args] : [];
+        } catch { return []; }
+      })[0] as { id: bigint } | undefined;
+      if (!created) throw new Error('Creation succeeded, but the CapTableCreated event could not be read.');
+      const newId = created.id;
 
       setCreateTx({ state: "pending", step: "locking the waterfall…" });
       const lockHash = await wallet.walletClient.writeContract({
@@ -277,8 +329,9 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
   const myTables = waterfallState?.capTables.filter(
     (t) => t.founder.toLowerCase() === wallet.address!.toLowerCase()
   );
+  const parsedAuditorTableId = /^\d+$/.test(auditorTableId) ? BigInt(auditorTableId) : null;
   const auditorsForEnteredId = waterfallState?.auditorGrants.filter(
-    (a) => auditorTableId && a.id === BigInt(auditorTableId || "0")
+    (a) => parsedAuditorTableId !== null && a.id === parsedAuditorTableId
   );
 
   return (
@@ -299,7 +352,7 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
                 .filter((d) => d.id === t.id)
                 .reduce((sum, d) => sum + d.publicTotal, 0n);
               return (
-                <div key={t.id.toString()} className="rounded-lg border border-white/10 px-4 py-3 text-sm">
+                <button type="button" onClick={() => { setActiveTableId(t.id); setAuditorTableId(t.id.toString()); }} key={t.id.toString()} className={`w-full rounded-lg border px-4 py-3 text-left text-sm ${activeTableId === t.id ? 'border-emerald-400/60 bg-emerald-400/[.05]' : 'border-white/10'}`}>
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Waterfall #{t.id.toString()}</span>
                     <span className={t.locked ? "text-emerald-400 text-xs" : "text-amber-400 text-xs"}>
@@ -320,7 +373,7 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
                   <p className="mt-2 text-xs text-zinc-500">
                     created {formatDate(t.createdAtMs)} · distributed to date: {formatUsdc(distributed)} USDC
                   </p>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -420,7 +473,7 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
           Grant auditor
         </h3>
         <p className="mb-3 text-sm text-zinc-500">
-          Let an investor or auditor verify a distribution privately — scoped, on-chain, revocable
+          Let an investor or auditor verify a distribution privately — scoped and on-chain
           — without making the deal terms public.
         </p>
         <div className="flex flex-wrap gap-2">
@@ -579,10 +632,10 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
           </button>
           <button
             onClick={createWaterfall}
-            disabled={createTx.state === "pending"}
+            disabled={createTx.state === "pending" || !wallet.handleClient}
             className="rounded-full bg-foreground px-4 py-1.5 text-sm font-medium text-background hover:bg-zinc-200 disabled:opacity-50"
           >
-            {createTx.state === "pending" ? createTx.step ?? "Working…" : "Create & lock"}
+            {createTx.state === "pending" ? createTx.step ?? "Working…" : !wallet.handleClient ? "Nox privacy service initializing…" : "Create & lock"}
           </button>
         </div>
         {createTx.state === "done" && (
@@ -591,6 +644,7 @@ export function FounderPanel({ wallet }: { wallet: WalletState }) {
         {createTx.state === "error" && (
           <p className="mt-2 text-sm text-red-400">{createTx.message}</p>
         )}
+        {formError && <p className="mt-2 text-sm text-red-400">{formError}</p>}
       </section>
     </div>
   );
