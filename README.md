@@ -92,16 +92,41 @@ founders both deposit before either calls `poolRevenue`, whoever calls it first 
 delta for their own cap table — fund your own waterfall and call **Pool revenue** promptly after
 **Route via 0xSplits**, same as the app's own flow.
 
-## Prerequisites
+## Prerequisites & funding (read this before you click anything)
 
 - Node.js 18+ and npm.
 - A browser wallet (MetaMask or similar) with an account on **Ethereum Sepolia**.
-- Sepolia test ETH for gas — a public faucet (e.g. the one built into most wallets, or
-  `sepoliafaucet.com`) is enough; the frontend itself never asks you to fund anything to try it,
-  since the contracts above are already deployed and live.
-- Only needed if you want to redeploy or run the setup scripts yourself: a Sepolia RPC URL and a
-  funded private key in `hardhat/.env` (see `hardhat/.env.example`), plus some Sepolia test USDC
-  (Circle's faucet at `usdcfaucet.com` supports Sepolia).
+
+### Gas — every on-chain action needs it
+**Create & lock, Route via 0xSplits, Pool revenue, Distribute, and Grant auditor all cost Sepolia
+gas.** The *connected* wallet needs Sepolia ETH in it, or the transaction fails with
+"insufficient funds for gas." This applies to every wallet that signs a transaction — the founder,
+and any owner or auditor doing an on-chain action of their own (decrypting is free/off-chain and
+doesn't need gas).
+
+Get Sepolia ETH from a faucet that doesn't require a mainnet balance:
+- PoW faucet (mine it in-browser, no mainnet balance needed): https://sepolia-faucet.pk910.de
+- Google Cloud faucet: https://cloud.google.com/application/web3/faucet/ethereum/sepolia
+
+Get at least **0.05 Sepolia ETH** per wallet before you start, so a run isn't interrupted mid-flow.
+
+### The 3-step funding flow — the #1 source of confusion, read this
+Money reaching a waterfall is **three separate on-chain steps**, in order. Think of it like mailing
+a check:
+1. **Send USDC to the Split address** — credits the 0xSplits Split, a waiting room. The money is
+   **not** in your deal yet. *(Like mailing the check.)*
+2. **Route via 0xSplits** — calls the Split's own, unmodified `distribute()`, which forwards the
+   funds from the Split into ScripWaterfall. **Nothing arrives in your deal until this runs.**
+   *(Like depositing the check.)*
+3. **Pool revenue** — marks whatever arrived as this waterfall's public, provable total. *(Like it
+   showing up in your balance.)*
+
+**"Protocol pooled balance" on Overview reads 0.0 until step 2 (Route via 0xSplits) completes —
+that is correct, not a bug.** The USDC is sitting at the Split, waiting to be routed.
+
+### Only needed if you want to redeploy or run the setup scripts yourself
+A Sepolia RPC URL and a funded private key in `hardhat/.env` (see `hardhat/.env.example`), plus
+some Sepolia test USDC (Circle's faucet at `usdcfaucet.com` supports Sepolia).
 
 ## Install and run
 
@@ -114,32 +139,31 @@ Open `http://localhost:3000`, click **Launch the Sepolia app**, and connect a wa
 No environment variables are needed for the frontend — the deployed contract addresses are already
 committed in `app/lib/contracts.ts`, pointing at the live Sepolia deployment above.
 
-## Using the dApp
+## Using the dApp — the full run order
 
-1. **Connect a wallet** on Sepolia from `/app`. A wallet with no history yet lands on "No on-chain
-   role yet" — that's expected for a brand-new address, not an error.
-2. **Become a founder** by clicking **New waterfall** (available to any connected wallet — there's
-   no allowlist). Add owner addresses, then build the waterfall: each tier is a beneficiary, a
-   "recoups first $X" or "then splits N%" rule, and an optional milestone gate. Every dollar
-   amount, percentage, and milestone flag is encrypted in your browser before **Create & lock**
-   submits it on-chain.
-3. **Fund it, three steps** (all on the founder Overview): send Sepolia USDC to the 0xSplits Split
-   address shown, then click **Route via 0xSplits** — this calls the Split's own unmodified
-   `distribute()` and is what actually forwards your funds from the Split into ScripWaterfall
-   (sending USDC to the Split alone does nothing until this runs), then click **Pool revenue** to
-   make what arrived your waterfall's public, provable total.
-4. **Distribute**: click **Distribute** — this evaluates the sealed waterfall against the pooled
-   total inside the Nox TEE and settles each owner's confidential payout in one transaction.
-5. **Decrypt as an owner**: switch to (or connect as) an owner wallet listed on that waterfall —
-   the Owner view decrypts that wallet's own computed payout. No other owner, the founder, or the
+1. **Fund the connected wallet with Sepolia ETH** (faucet links above) — every step below is a
+   transaction and needs gas.
+2. **Build the waterfall**: connect at `/app` and click **New waterfall** (any connected wallet can
+   — there's no allowlist). Add owner addresses, then build the waterfall tier by tier — each tier
+   is a beneficiary, a "recoups first $X" or "then splits N%" rule, and an optional milestone gate.
+3. **Create & lock** — every dollar amount, percentage, and milestone flag is encrypted in your
+   browser first; this submits it on-chain and finalizes the tiers.
+4. **Send test USDC to the Split address** shown on your founder Overview.
+5. **Route via 0xSplits** — forwards what you sent from the Split into ScripWaterfall. Nothing
+   arrives in your deal until this step runs (see "The 3-step funding flow" above).
+6. **Pool revenue** — the "Protocol pooled balance" / your waterfall's pooled total now reflects
+   what arrived.
+7. **Distribute** — Nox evaluates the sealed waterfall against the pooled total inside the TEE and
+   settles each owner's confidential payout in one transaction.
+8. **Decrypt as an owner** — connect (or switch to) an owner wallet listed on that waterfall; the
+   Owner view decrypts that wallet's own computed payout only. No other owner, the founder, or the
    public can see it.
-6. **Grant an auditor** (optional): from the founder view, grant a specific address scoped
-   decrypt access to the whole batch of payouts — recorded on-chain, revocable, without making the
-   deal terms public to anyone else.
+9. **Grant an auditor** (optional) — from the founder view, grant a specific address scoped,
+   revocable decrypt access to the whole batch of payouts, without making the deal terms public.
 
 To see this without funding anything yourself, connect as the pre-seeded demo founder or investor
 wallet (see `hardhat/.env` after running the setup scripts below) against cap tables #1/#2 on
-`ScripWaterfall` — the real milestone-flip proof described above.
+`ScripWaterfall` v2 — the real milestone-flip proof described above.
 
 ## Redeploy or reset the demo (optional — contracts above are already live)
 

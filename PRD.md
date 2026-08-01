@@ -152,7 +152,44 @@ private). State the privacy boundary honestly (below) rather than overclaiming.
 
 ---
 
-## 9. Non-goals / cuts
+## 9. Prerequisites & funding (for anyone testing this)
+
+This tripped up real testing time, so it's documented here, in README.md, `/docs`, and
+DEMO_SCRIPT.md — all four, not just one.
+
+**Gas.** Create & lock, Route via 0xSplits, Pool revenue, Distribute, and Grant auditor each cost
+Sepolia gas — the connected wallet (founder, and any owner/auditor taking an on-chain action) needs
+Sepolia ETH or the tx fails with "insufficient funds for gas." Get it from a faucet that doesn't
+require a mainnet balance: the PoW faucet at `sepolia-faucet.pk910.de`, or Google Cloud's faucet at
+`cloud.google.com/application/web3/faucet/ethereum/sepolia`. Aim for 0.05+ Sepolia ETH per wallet.
+
+**The 3-step funding flow (the #1 point of confusion).** Money reaching a waterfall is three
+separate on-chain steps, not one: (1) send USDC to the Split address — credits the Split, a waiting
+room, not your deal yet; (2) **Route via 0xSplits** — calls the Split's own unmodified
+`distribute()`, the step that actually forwards funds into ScripWaterfall (nothing arrives until
+this runs); (3) **Pool revenue** — marks what arrived as this waterfall's public, provable total.
+"Protocol pooled balance" reading 0.0 before step 2 is correct, not a bug.
+
+**Full run order:** fund wallet with Sepolia ETH → build waterfall (owners + tiers) → Create & lock
+→ send USDC to the Split → Route via 0xSplits → Pool revenue → Distribute → owners decrypt their
+own payouts.
+
+**Current deployed addresses (Sepolia):** `ScripWaterfall` v2 —
+`0xb9c64beb326ba50acc07bcb4bf1ce0b7f25c3478`; 0xSplits Split — `0xB97F83C034A97893f7F8BDD78b70C035b3C501Ee`;
+Confidential USDC (ERC-7984) — `0x081000dc72d13e472671f9a641c261cbb1a39101`; USDC (Circle, Sepolia)
+— `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`.
+
+**Shared-pool fund safety.** Any wallet can found a waterfall, and every waterfall on this
+deployment shares one contract's USDC balance — 0xSplits transfers carry no metadata saying which
+deal they're for. A per-cap-table ledger (`pooledUnspent[id]` in `ScripWaterfall.sol`) ensures
+`poolRevenue`/`distribute` can only ever attribute or spend funds actually pooled for that specific
+cap table — one founder's actions can never claim funds that arrived for a different founder's
+deal. (Residual, disclosed limit: if two founders both deposit before either calls `poolRevenue`,
+whoever calls it first claims that combined new delta for their own id.)
+
+---
+
+## 10. Non-goals / cuts
 
 - No modifying 0xSplits (wrap only).
 - No FHE anywhere (banned; Nox TEE only).

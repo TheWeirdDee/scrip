@@ -19,6 +19,7 @@ const onThisPage = [
   ["#what", "What Scrip is"],
   ["#waterfall", "How the waterfall works"],
   ["#roles", "Founder, owner, auditor"],
+  ["#funding", "Prerequisites & funding"],
   ["#usage", "Step by step"],
   ["#privacy", "Privacy boundary"],
   ["#contracts", "Deployed contracts"],
@@ -133,9 +134,52 @@ export default function DocsPage() {
               </ul>
             </section>
 
+            <section id="funding">
+              <h2>Prerequisites &amp; funding</h2>
+              <p>
+                Read this before you click anything — the funding flow is the single biggest source
+                of confusion, and it&apos;s two things people miss: gas, and that money reaching a
+                waterfall is three separate steps, not one.
+              </p>
+              <h3>Gas — every on-chain action needs it</h3>
+              <p>
+                <strong>Create &amp; lock, Route via 0xSplits, Pool revenue, Distribute, and Grant
+                auditor all cost Sepolia gas.</strong> The connected wallet needs Sepolia ETH in it
+                or the transaction fails with &quot;insufficient funds for gas.&quot; This applies
+                to every wallet that signs a transaction — the founder, and any owner or auditor
+                doing an on-chain action (decrypting itself is free/off-chain).
+              </p>
+              <p>
+                Get Sepolia ETH from a faucet that doesn&apos;t require a mainnet balance:{" "}
+                <a href="https://sepolia-faucet.pk910.de" target="_blank" rel="noreferrer">the PoW faucet <Arrow /></a>{" "}
+                (mine it in-browser) or{" "}
+                <a href="https://cloud.google.com/application/web3/faucet/ethereum/sepolia" target="_blank" rel="noreferrer">Google Cloud&apos;s faucet <Arrow /></a>.
+                Get at least 0.05 Sepolia ETH per wallet before you start.
+              </p>
+              <h3>The 3-step funding flow</h3>
+              <p>Think of it like mailing a check:</p>
+              <ol>
+                <li><strong>Send USDC to the Split address</strong> — credits the 0xSplits Split, a
+                  waiting room. Not in your deal yet. <em>(Like mailing the check.)</em></li>
+                <li><strong>Route via 0xSplits</strong> — calls the Split&apos;s own, unmodified
+                  <code> distribute()</code>, forwarding the funds into ScripWaterfall.
+                  <strong> Nothing arrives in your deal until this runs.</strong>
+                  <em> (Like depositing the check.)</em></li>
+                <li><strong>Pool revenue</strong> — marks whatever arrived as this waterfall&apos;s
+                  public, provable total. <em>(Like it showing up in your balance.)</em></li>
+              </ol>
+              <p>
+                <strong>&quot;Protocol pooled balance&quot; on Overview reads 0.0 until step 2
+                completes — that is correct, not a bug.</strong> The USDC is sitting at the Split,
+                waiting to be routed.
+              </p>
+            </section>
+
             <section id="usage">
               <h2>Step by step</h2>
               <ol>
+                <li><strong>Fund the connected wallet with Sepolia ETH</strong> (faucets above) —
+                  every step below is a transaction and needs gas.</li>
                 <li><strong>Connect a wallet</strong> on Sepolia from <Link href="/app">/app</Link>.
                   A wallet with no history lands on &quot;No on-chain role yet&quot; — that&apos;s
                   expected for a brand-new address, not an error.</li>
@@ -144,12 +188,12 @@ export default function DocsPage() {
                   cap or split ratio, and an optional milestone gate.</li>
                 <li><strong>Create &amp; lock</strong> — every term is encrypted in your browser
                   first; locking finalizes the tiers on-chain.</li>
-                <li><strong>Fund it — three steps</strong>: send Sepolia USDC to the 0xSplits Split
-                  address shown on your founder Overview; click <strong>Route via 0xSplits</strong>
-                  (the Split&apos;s own unmodified <code>distribute()</code>, which is what actually
-                  forwards your funds into ScripWaterfall — sending USDC to the Split alone does
-                  nothing until this runs); then click <strong>Pool revenue</strong> to make what
-                  arrived your waterfall&apos;s public, provable total.</li>
+                <li><strong>Send test USDC to the Split address</strong> shown on your founder
+                  Overview.</li>
+                <li><strong>Route via 0xSplits</strong> — forwards what you sent from the Split into
+                  ScripWaterfall (see Prerequisites &amp; funding above).</li>
+                <li><strong>Pool revenue</strong> — your waterfall&apos;s pooled total now reflects
+                  what arrived.</li>
                 <li><strong>Distribute</strong> — evaluates the sealed waterfall against the pooled
                   total inside the Nox TEE and settles every owner&apos;s confidential payout in one
                   transaction.</li>
