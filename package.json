@@ -8,7 +8,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test --test-isolation=none test/*.test.ts",
+    "test": "node --test test/*.test.ts",
     "check": "npm run lint && npm run test && npm run build"
   },
   "dependencies": {
